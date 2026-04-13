@@ -1,0 +1,74 @@
+---
+type: object_type
+id: d50k70b5s3q8ofn0dsmg
+name: 仓库
+tags: []
+---
+
+## ObjectType: 仓库
+
+记录公司用于存储物料和产品的仓库，包含仓库类型、地理位置、存储容量、温湿度控制、自动化设备、WMS系统、运营时间、吞吐量等仓库设施和运营信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| address | 地址 | string | 仓库的详细地址 | address |
+| agv_count | AGV数量 | integer | AGV的数量 | agv_count |
+| automation_level | 自动化水平 | string | 仓库的自动化水平（如高度自动化、中度自动化等） | automation_level |
+| certifications | 认证 | string | 仓库获得的认证（如ISO9001等，逗号分隔） | certifications |
+| city | 城市 | string | 仓库所在城市 | city |
+| country | 国家 | string | 仓库所在国家 | country |
+| created_date | 创建日期 | string | 仓库记录创建日期 | created_date |
+| employee_count | 员工数量 | integer | 仓库的员工总数 | employee_count |
+| established_year | 成立年份 | integer | 仓库成立的年份 | established_year |
+| fire_protection_level | 消防等级 | string | 仓库的消防等级（如一级、二级等） | fire_protection_level |
+| has_agv | 是否有AGV | string | 标识是否有自动导引车（是/否） | has_agv |
+| has_cold_storage | 是否有冷库 | string | 标识是否有冷库（是/否） | has_cold_storage |
+| has_conveyor | 是否有输送带 | string | 标识是否有输送带（是/否） | has_conveyor |
+| has_rfid | 是否有RFID系统 | string | 标识是否有RFID系统（是/否 | has_rfid |
+| has_sorting_system | 是否有分拣系统 | string | 标识是否有分拣系统（是/否） | has_sorting_system |
+| has_wms | 是否有WMS | string | 标识是否有仓库管理系统（是/否） | has_wms |
+| humidity_control | 湿度控制 | string | 是否有湿度控制（是/否） | humidity_control |
+| humidity_range | 湿度范围 | string | 仓库的湿度控制范围 | humidity_range |
+| last_inspection_date | 最后检查日期 | string | 仓库最后一次检查的日期 | last_inspection_date |
+| latitude | 纬度 | float | 仓库的地理位置纬度 | latitude |
+| longitude | 经度 | float | 仓库的地理位置经度 | longitude |
+| manager_email | 经理邮箱 | string | 仓库经理的邮箱 | manager_email |
+| manager_name | 经理姓名 | string | 仓库经理的姓名 | manager_name |
+| manager_phone | 经理电话 | string | 仓库经理的电话 | manager_phone |
+| max_daily_throughput | 最大日吞吐量 | integer | 仓库的最大日吞吐量 | max_daily_throughput |
+| operation_hours | 运营时间 | string | 仓库的运营时间（如7x24小时、周一至周六等） | operation_hours |
+| pallet_positions | 托盘位数量 | integer | 仓库的托盘位数量 | pallet_positions |
+| postal_code | 邮政编码 | integer | 仓库所在地的邮政编码 | postal_code |
+| province | 省份 | string | 仓库所在省份 | province |
+| quality_standards | 质量标准 | string | 仓库执行的质量标准（如GMP、5S等，逗号分隔） | quality_standards |
+| security_system | 安防系统 | string | 仓库的安防系统描述 | security_system |
+| status | 状态 | string | 仓库状态（Active/Inactive等） | status |
+| storage_area_sqm | 存储面积（平方米） | integer | 仓库的存储面积（单位：平方米） | storage_area_sqm |
+| storage_capacity_cbm | 存储容量（立方米） | integer | 仓库的存储容量（单位：立方米） | storage_capacity_cbm |
+| temperature_control | 温度控制 | string | 仓库的温度控制方式（如常温、恒温等） | temperature_control |
+| temperature_range | 温度范围 | string | 仓库的温度控制范围 | temperature_range |
+| throughput_unit | 吞吐量的单位 | string | 吞吐量的单位（如台/天、箱/天等） | throughput_unit |
+| total_area_sqm | 总面积（平方米） | integer | 仓库的总面积（单位：平方米） | total_area_sqm |
+| warehouse_code | 仓库编码 | string | 仓库的业务编码，用于业务单据和查询 | warehouse_code |
+| warehouse_height | 仓库高度（米） | integer | 仓库的高度（单位：米） | warehouse_height |
+| warehouse_id | 仓库id | string | 仓库的唯一标识符，系统内部使用 | warehouse_id |
+| warehouse_name | 仓库名称 | string | 仓库的完整名称 | warehouse_name |
+| warehouse_type | 仓库类型 | string | 仓库的类型（如成品仓、原材料仓、配件仓等） | warehouse_type |
+| wms_system | WMS系统 | string | 使用的WMS系统名称（如SAP EWM、Oracle WMS等） | wms_system |
+
+### Keys
+
+Primary Keys: warehouse_code
+Display Key: warehouse_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | baa8df11-da0a-4df6-848e-a6e0b5a2ed29 | warehouse_entity |
+

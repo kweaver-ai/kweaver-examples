@@ -1,0 +1,55 @@
+---
+type: object_type
+id: d50mu335s3q8ofn0dv00
+name: 采购订单
+tags: []
+---
+
+## ObjectType: 采购订单
+
+记录向供应商下达的采购订单，包含采购订单号、供应商信息、物料信息、采购数量、含税/不含税价格、需求日期、计划到货日期、累计到货和入库金额、供应商等级等采购订单信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| accumulated_arrival_tax | 累计到货含税金额 | float | 累计已到货的含税金额 | accumulated_arrival_tax |
+| accumulated_storage_tax | 累计入库含税金额 | float | 累计已入库的含税金额 | accumulated_storage_tax |
+| buyer | 采购员 | string | 负责该采购订单的采购员姓名 | buyer |
+| created_date | 创建日期 | string | 采购订单创建日期 | created_date |
+| document_date | 单据日期 | string | 采购订单的单据日期 | document_date |
+| document_status | 单据状态 | string | 采购订单的状态（已关闭/已收货等 | document_status |
+| material_code | 物料编号 | string | 物料的编码 | material_code |
+| material_id | 物料id | string | 物料的ID标识 | material_id |
+| material_name | 物料名称 | string | 物料的名称 | material_name |
+| payment_terms | 付款条件 | string | 付款条件（如月结60天等） | payment_terms |
+| planned_arrival_date | 计划到货日期 | string | 物料计划到达仓库的日期 | planned_arrival_date |
+| purchase_order_id | 采购订单id | string | 采购订单记录的唯一标识符 | purchase_order_id |
+| purchase_order_number | 采购订单编号 | string | 采购订单的业务编号 | purchase_order_number |
+| purchase_quantity | 采购数量 | integer | 采购订单中的物料数量 | purchase_quantity |
+| required_date | 需求日期 | string | 物料的需求日期 | required_date |
+| risk_level | 风险等级 | string | 供应商的风险等级（高/中/低） | risk_level |
+| status | 状态 | string | 采购订单状态（Active/Inactive等） | status |
+| supplier_id | 供应商id | string | 供应商的ID标识 | supplier_id |
+| supplier_level | 供应商等级 | string | 供应商的等级分类（战略/核心/一般） | supplier_level |
+| supplier_name | 供应商名称 | string | 供应商的名称 | supplier_name |
+| tax_rate | 税率 | float | 采购订单的税率 | tax_rate |
+| total_amount_no_tax | 不含税总金额 | float | 不包含税款的订单总金额 | total_amount_no_tax |
+| total_amount_tax | 含税总金额 | float | 包含税款的订单总金额 | total_amount_tax |
+| unit_price_no_tax | 不含税单价 | float | 不含税款的单位价格 | unit_price_no_tax |
+| unit_price_tax | 含税单价 | float | 包含税款的单位价格 | unit_price_tax |
+
+### Keys
+
+Primary Keys: purchase_order_id
+Display Key: purchase_order_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 207a4384-fa2d-4257-9080-03091adb9d0d | purchase_order_event |
+

@@ -1,0 +1,52 @@
+---
+type: object_type
+id: d50jinj5s3q8ofn0ds00
+name: 供应商
+tags: []
+---
+
+## ObjectType: 供应商
+
+记录为公司提供物料和服务的供应商，包含供应商分类、层级、地理位置、结算货币、付款条件、平均交期、风险等级、年产能等供应商主数据信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| annual_capacity | 年产能 | string | 供应商的年生产能力（单位：件/万件等） | annual_capacity |
+| city | 城市 | string | 供应商所在城市 | city |
+| contact_email | 联系邮箱 | string | 供应商联系邮箱 | contact_email |
+| contact_phone | 联系电话 | string | 供应商联系电话 | contact_phone |
+| country | 国家 | string | 供应商所在国家 | country |
+| created_date | 创建日期 | string | 供应商记录创建日期 | created_date |
+| default_tax_rate | 默认税率 | float | 与供应商交易的默认税率 | default_tax_rate |
+| established_year | 成立年份 | integer | 供应商公司成立年份 | established_year |
+| is_active | 是否活跃 | string | 标识供应商是否处于活跃状态（是/否） | is_active |
+| lead_time_avg | 平均交期 | integer | 供应商的平均交货周期（单位：天） | lead_time_avg |
+| payment_terms | 付款条件 | string | 付款条件（如月结60天、款到发货等） | payment_terms |
+| primary_contact | 主要联系人 | string | 供应商的主要联系人姓名 | primary_contact |
+| registered_address | 注册地址 | string | 供应商的注册地址 | registered_address |
+| risk_level | 风险等级 | string | 供应商的风险等级（高/中/低） | risk_level |
+| settlement_currency | 结算货币 | string | 与供应商结算使用的货币（CNY/USD等） | settlement_currency |
+| status | 状态 | string | 供应商状态（Active/Inactive等） | status |
+| supplier_category | 供应商分类 | string | 供应商的业务分类（如电子元件-芯片、传感器-IMU等） | supplier_category |
+| supplier_code | 供应商编码 | string | 供应商的业务编码，用于业务单据和查询 | supplier_code |
+| supplier_id | 供应商id | string | 供应商的唯一标识符，系统内部使用 | supplier_id |
+| supplier_name | 供应商名称 | string | 供应商的完整公司名称 | supplier_name |
+| supplier_short_name | 供应商简称 | string | 供应商的简称或英文名称 | supplier_short_name |
+| supplier_tier | 供应商层级 | string | 供应商等级（战略/核心/一般），用于供应商分级管理 | supplier_tier |
+
+### Keys
+
+Primary Keys: supplier_code
+Display Key: supplier_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | aa36d6dc-e9f3-4a87-b8bb-c987590fb901 | supplier_entity |
+

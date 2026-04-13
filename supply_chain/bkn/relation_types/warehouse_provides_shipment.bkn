@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50ni7r5s3q8ofn0e0hg
+name: 仓库提供产品发货物流单
+tags: []
+---
+
+## RelationType: 仓库提供产品发货物流单
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50k70b5s3q8ofn0dsmg | d50mbo35s3q8ofn0dui0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| warehouse_id | warehouse_id |

@@ -1,0 +1,16 @@
+---
+type: concept_group
+id: d5cvdkpv9d02t1athrfg
+name: 衍生对象
+tags: []
+---
+
+## ConceptGroup: 衍生对象
+
+基于事件数据的统计和计划（如备货计划）。
+
+### Object Types
+
+| ID | Name | Description |
+|----|------|-------------|
+| d50m5rj5s3q8ofn0du90 | 库存清单 | Inventory snapshots are often aggregated into derived planning views; extend this group when you add derived object types. |

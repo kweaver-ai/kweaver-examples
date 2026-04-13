@@ -1,0 +1,21 @@
+---
+type: relation_type
+id: d50nf1j5s3q8ofn0e09g
+name: 物料关联产品BOM
+tags: []
+---
+
+## RelationType: 物料关联产品BOM
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50jpcb5s3q8ofn0dsb0 | d50lpfr5s3q8ofn0dtg0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| material_code | child_code |
+| material_code | parent_code |

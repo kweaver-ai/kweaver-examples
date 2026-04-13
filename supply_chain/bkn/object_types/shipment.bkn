@@ -1,0 +1,56 @@
+---
+type: object_type
+id: d50mbo35s3q8ofn0dui0
+name: 产品发货物流单
+tags: []
+---
+
+## ObjectType: 产品发货物流单
+
+记录产品从仓库发货给客户的物流信息，包含发货单号、发货仓库、收货客户、发货产品、数量、价格、收货人信息、交货地址、物流商、跟踪号、预计和实际送达日期、交付状态等发货物流信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| actual_delivery_date | 实际送达日期 | string | 实际送达客户的日期 | actual_delivery_date |
+| consignee | 收货人 | string | 收货人的姓名 | consignee |
+| consignee_phone | 收货人电话 | string | 收货人的联系电话 | consignee_phone |
+| created_date | 创建日期 | string | 发货记录创建日期 | created_date |
+| customer_code | 客户编码 | string | 收货客户的编码 | customer_code |
+| customer_id | 客户id | integer | 收货客户的ID标识 | customer_id |
+| customer_name | 客户名称 | string | 收货客户的名称 | customer_name |
+| delivery_address | 交货地址 | string | 产品交付的详细地址 | delivery_address |
+| delivery_status | 交付状态 | string | 产品的交付状态 | delivery_status |
+| estimated_delivery_date | 预计送达日期 | string | 预计送达客户的日期 | estimated_delivery_date |
+| logistics_provider | 物流商 | string | 负责物流运输的供应商名称 | logistics_provider |
+| notes | 备注 | string | 发货记录的备注信息 | notes |
+| product_code | 产品编码 | string | 发货产品的编码 | product_code |
+| product_id | 产品id | string | 发货产品的ID标识 | product_id |
+| product_name | 产品名称 | string | 发货产品的名称 | product_name |
+| quantity | 数量 | integer | 发货的产品数量 | quantity |
+| sales_order_number | 销售订单编号 | string | 关联的销售订单编号 | sales_order_number |
+| shipment_date | 发货日期 | string | 产品发货的日期 | shipment_date |
+| shipment_id | 发货id | string | 发货记录的唯一标识符 | shipment_id |
+| shipment_number | 发货单编号 | string | 发货单的业务编号 | shipment_number |
+| status | 状态 | string | 发货记录状态（Active/Inactive等） | status |
+| total_amount | 总金额 | float | 发货的总金额（数量×单价） | total_amount |
+| tracking_number | 跟踪号 | string | 物流跟踪单号 | tracking_number |
+| unit_price | 单价 | float | 产品的单位价格 | unit_price |
+| warehouse_id | 仓库id | string | 发货仓库的ID标识 | warehouse_id |
+| warehouse_name | 仓库名称 | string | 发货仓库的名称 | warehouse_name |
+
+### Keys
+
+Primary Keys: shipment_id
+Display Key: shipment_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 9ee1c35d-07a3-45a5-8701-70f0b8b6f9c4 | shipment_event |
+

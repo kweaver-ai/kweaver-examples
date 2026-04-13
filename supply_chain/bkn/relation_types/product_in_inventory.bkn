@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50nfp35s3q8ofn0e0bg
+name: 产品关联库存清单
+tags: []
+---
+
+## RelationType: 产品关联库存清单
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50jqrr5s3q8ofn0dscg | d50m5rj5s3q8ofn0du90 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| product_code | item_code |

@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50nhmj5s3q8ofn0e0gg
+name: 产品生产单关联产品
+tags: []
+---
+
+## RelationType: 产品生产单关联产品
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50n6635s3q8ofn0dvk0 | d50jqrr5s3q8ofn0dscg | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| output_id | product_id |

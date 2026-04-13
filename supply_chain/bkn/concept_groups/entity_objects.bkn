@@ -1,0 +1,21 @@
+---
+type: concept_group
+id: d5cvbp9v9d02t1athqv0
+name: 实体对象
+tags: []
+---
+
+## ConceptGroup: 实体对象
+
+具有实物或者能够具有实体行为的主体、客体对象，构成了供应链的静态基础（如人、货、场）。
+
+### Object Types
+
+| ID | Name | Description |
+|----|------|-------------|
+| d50j2h35s3q8ofn0drag | 客户 |  |
+| d50jaa35s3q8ofn0drmg | 工厂 |  |
+| d50jinj5s3q8ofn0ds00 | 供应商 |  |
+| d50jpcb5s3q8ofn0dsb0 | 物料 |  |
+| d50jqrr5s3q8ofn0dscg | 产品 |  |
+| d50k70b5s3q8ofn0dsmg | 仓库 |  |

@@ -1,0 +1,61 @@
+---
+type: object_type
+id: d50m0gb5s3q8ofn0dts0
+name: 销售订单
+tags: []
+---
+
+## ObjectType: 销售订单
+
+记录客户下达的销售订单，包含销售订单号、客户信息、产品信息、数量、价格、折扣、税额、订单状态、销售部门和销售员、计划交货日期、是否加急、关联合同和项目等销售订单信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| actual_price | 实际价格 | float | 折扣后的实际单价 | actual_price |
+| contract_number | 合同编号 | string | 关联的合同编号 | contract_number |
+| created_date | 创建日期 | string | 销售订单创建日期 | created_date |
+| customer_id | 客户id | integer | 客户的ID标识 | customer_id |
+| customer_name | 客户名称 | string | 客户的名称 | customer_name |
+| discount_rate | 折扣率 | string | 订单的折扣率（如4.0%） | discount_rate |
+| document_date | 单据日期 | string | 销售订单的单据日期 | document_date |
+| document_status | 单据状态 | string | 单据的状态（如已确认等） | document_status |
+| end_customer | 最终客户 | string | 最终使用产品的客户名称 | end_customer |
+| is_urgent | 是否加急 | string | 标识是否为加急订单（是/否） | is_urgent |
+| line_number | 行号 | integer | 销售订单的行号 | line_number |
+| notes | 备注 | string | 订单的备注信息 | notes |
+| order_status | 订单状态 | string | 订单的状态（如已发货等） | order_status |
+| planned_delivery_date | 计划交货日期 | string | 计划交货给客户的日期 | planned_delivery_date |
+| product_code | 产品编码 | string | 销售产品的编码 | product_code |
+| product_id | 产品id | string | 销售产品的ID标识 | product_id |
+| product_name | 产品名称 | string | 销售产品的名称 | product_name |
+| project_name | 项目名称 | string | 关联的项目名称 | project_name |
+| quantity | 数量 | integer | 销售的产品数量 | quantity |
+| quotation_number | 报价单号 | string | 关联的报价单编号 | quotation_number |
+| sales_department | 销售部门 | string | 负责的销售部门 | sales_department |
+| sales_order_id | 销售订单id | string | 销售订单记录的唯一标识符 | sales_order_id |
+| sales_order_number | 销售订单编号 | string | 销售订单的业务编号 | sales_order_number |
+| salesperson | 销售员 | string | 负责的销售员姓名 | salesperson |
+| standard_price | 标准价格 | integer | 产品的标准价格 | standard_price |
+| status | 状态 | string | 销售订单状态（Active/Inactive等） | status |
+| subtotal_amount | 小计金额 | float | 订单行的小计金额（数量×实际价格） | subtotal_amount |
+| tax_amount | 税额 | float | 订单行的税额 | tax_amount |
+| total_amount | 总金额 | float | 订单行的总金额（小计+税额） | total_amount |
+| transaction_type | 交易类型 | string | 交易类型（如项目销售、直销等） | transaction_type |
+| unit | 单位 | string | 产品的计量单位（如台等） | unit |
+
+### Keys
+
+Primary Keys: sales_order_id
+Display Key: project_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 4ea237f1-6c09-41a2-9baf-9906283066cc | sales_order_event |
+

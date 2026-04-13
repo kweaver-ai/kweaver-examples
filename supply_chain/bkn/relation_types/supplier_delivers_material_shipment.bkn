@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50nk1r5s3q8ofn0e0m0
+name: 供应商提供物料发货单
+tags: []
+---
+
+## RelationType: 供应商提供物料发货单
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50jinj5s3q8ofn0ds00 | d50mogj5s3q8ofn0duug | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| supplier_id | supplier_id |

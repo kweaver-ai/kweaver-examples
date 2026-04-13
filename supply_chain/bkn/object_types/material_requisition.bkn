@@ -1,0 +1,50 @@
+---
+type: object_type
+id: d50nafb5s3q8ofn0dvl0
+name: 物料领料单
+tags: []
+---
+
+## ObjectType: 物料领料单
+
+记录工厂从仓库领取物料用于生产的领料单，包含领料单号、物料信息、仓库信息、工厂信息、申请数量、已发放数量、关联的生产订单号、领料用途等领料信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| created_date | 创建日期 | string | 领料记录创建日期 | created_date |
+| factory_id | 工厂id | string | 领料工厂的ID标识 | factory_id |
+| factory_name | 工厂名称 | string | 领料工厂的名称 | factory_name |
+| issue_date | 发料日期 | string | 物料实际发放的日期 | issue_date |
+| issued_quantity | 已发数量 | float | 实际已发放的物料数量 | issued_quantity |
+| material_code | 物料编码 | string | 被领用物料的编码 | material_code |
+| material_id | 物料id | string | 被领用物料的ID标识 | material_id |
+| material_name | 物料名称 | string | 被领用物料的名称 | material_name |
+| material_requisition_id | 物料领料id | string | 物料领料记录的唯一标识符 | material_requisition_id |
+| material_type | 物料类型 | string | 物料的类型（如部件、组件、零件等） | material_type |
+| production_order_number | 生产订单编号 | string | 关联的生产订单编号（如MO-202305001） | production_order_number |
+| purpose | 用途 | string | 物料领用的用途说明（如生产M0001、组装P0001等） | purpose |
+| requested_quantity | 申请数量 | float | 申请领用的物料数量 | requested_quantity |
+| requisition_date | 领料日期 | string | 物料领料申请的日期 | requisition_date |
+| requisition_number | 领料单号 | string | 物料领料单的业务编号（如REQ-MO202305001-M0001） | requisition_number |
+| requisition_type | 领料类型 | string | 领料的类型（如部件领取、半成品领取、零件领取等） | requisition_type |
+| status | 状态 | string | 领料单状态（如已发料等） | status |
+| unit | 单位 | string | 物料的计量单位（如个、套、块、颗等） | unit |
+| warehouse_id | 仓库id | string | 发料仓库的ID标识 | warehouse_id |
+| warehouse_name | 仓库名称 | string | 发料仓库的名称 | warehouse_name |
+
+### Keys
+
+Primary Keys: material_requisition_id
+Display Key: material_requisition_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | b7983bc0-060f-4a21-87ba-a289be389d63 | material_requisition_event |
+

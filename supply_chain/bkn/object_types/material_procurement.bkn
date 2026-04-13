@@ -1,0 +1,56 @@
+---
+type: object_type
+id: d50mogj5s3q8ofn0duug
+name: 物料发货单
+tags: []
+---
+
+## ObjectType: 物料发货单
+
+记录从供应商采购物料并入库的完整流程，包含采购单号、供应商信息、物料信息、数量、价格、物流信息、检验状态、实际送达日期等采购执行信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| actual_delivery_date | 实际送达日期 | string | 实际送达仓库的日期 | actual_delivery_date |
+| created_date | 创建日期 | string | 采购记录创建日期 | created_date |
+| currency | 货币 | string | 交易使用的货币类型（CNY/USD等） | currency |
+| estimated_delivery_date | 预计送达日期 | string | 预计送达仓库的日期 | estimated_delivery_date |
+| inspection_status | 检验状态 | string | 物料检验的状态 | inspection_status |
+| logistics_provider | 物流商 | string | 负责物流运输的供应商名称 | logistics_provider |
+| material_code | 物料编码 | string | 物料的编码 | material_code |
+| material_id | 物料id | string | 物料的ID标识 | material_id |
+| material_name | 物料名称 | string | 物料的名称 | material_name |
+| notes | 备注 | string | 采购记录的备注信息 | notes |
+| payment_terms | 付款条件 | string | 付款条件（如月结60天等） | payment_terms |
+| procurement_id | 发货订单id | string | 物料发货记录的唯一标识符 | procurement_id |
+| procurement_number | 发货订单编号 | string | 物料发货订单的业务编号 | procurement_number |
+| quantity | 数量 | integer | 物料发货的数量 | quantity |
+| ship_date | 发货日期 | string | 供应商发货的日期 | ship_date |
+| status | 状态 | string | 采购记录状态（Active/Inactive等） | status |
+| supplier_code | 供应商编码 | string | 供应商的编码 | supplier_code |
+| supplier_id | 供应商id | string | 供应商的ID标识 | supplier_id |
+| supplier_name | 供应商名称 | string | 供应商的名称 | supplier_name |
+| tax_rate | 税率 | float | 采购交易的税率 | tax_rate |
+| total_amount | 总金额 | float | 发货物料的总金额 | total_amount |
+| tracking_number | 跟踪单号 | string | 物流跟踪单号 | tracking_number |
+| unit_price | 单价 | float | 物料的单位价格 | unit_price |
+| warehouse_id | 仓库id | string | 目标仓库的ID标识 | warehouse_id |
+| warehouse_name | 仓库名称 | string | 目标仓库的名称 | warehouse_name |
+| procurement_date | procurement_date | string |  | procurement_date |
+
+### Keys
+
+Primary Keys: procurement_id
+Display Key: procurement_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | b09f9025-02bd-4c1d-9626-07895d7207fd | material_procurement_event |
+

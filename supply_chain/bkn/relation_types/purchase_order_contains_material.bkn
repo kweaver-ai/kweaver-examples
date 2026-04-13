@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50njdr5s3q8ofn0e0k0
+name: 采购订单包含物料
+tags: []
+---
+
+## RelationType: 采购订单包含物料
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50mu335s3q8ofn0dv00 | d50jpcb5s3q8ofn0dsb0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| material_id | material_id |

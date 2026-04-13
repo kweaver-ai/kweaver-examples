@@ -1,0 +1,49 @@
+---
+type: object_type
+id: d50m5rj5s3q8ofn0du90
+name: 库存清单
+tags: []
+---
+
+## ObjectType: 库存清单
+
+记录仓库中物料和产品的库存快照，包含批次号、数量、单价、总价、最早入库日期、最大存储期限、存储原因、消耗路径等库存明细信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| batch_number | 批次号 | string | 物料的批次编号，用于批次管理和追溯 | batch_number |
+| consumption_path | 消耗路径 | string | 物料的消耗去向（如销售出库、生产领料等） | consumption_path |
+| created_date | 创建日期 | string | 库存记录创建日期 | created_date |
+| earliest_storage_date | 最早入库日期 | string | 该批次物料的最早入库日期 | earliest_storage_date |
+| inventory_id | 库存id | string | 库存记录的唯一标识符 | inventory_id |
+| item_code | 物品编码 | string | 物品的编码 | item_code |
+| item_id | 物品id | string | 物品的ID标识 | item_id |
+| item_name | 物品名称 | string | 物品的名称 | item_name |
+| item_type | 物品类型 | string | 物品类型（Product/Material等） | item_type |
+| max_storage_age | 最大存储期限 | integer | 物料的最大存储期限（单位：月） | max_storage_age |
+| quantity | 数量 | integer | 库存数量 | quantity |
+| snapshot_month | 快照月份 | string | 库存快照的月份（格式：YYYY-MM） | snapshot_month |
+| status | 状态 | string | 库存状态（Active/Inactive等） | status |
+| storage_note | 存储备注 | string | 库存存储的相关备注信息 | storage_note |
+| storage_reason | 存储原因 | string | 物料入库的原因（如生产入库、采购入库等） | storage_reason |
+| total_price | 总价 | float | 库存总价值（数量×单价） | total_price |
+| unit_price | 单价 | float | 物料的单位价格 | unit_price |
+| warehouse_id | 仓库id | string | 仓库的ID标识 | warehouse_id |
+| warehouse_name | 仓库名称 | string | 仓库的名称 | warehouse_name |
+
+### Keys
+
+Primary Keys: inventory_id
+Display Key: inventory_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | f86efa02-ad0c-4b46-bfcb-d19eb9855a2a | inventory_event |
+

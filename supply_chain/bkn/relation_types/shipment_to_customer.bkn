@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50nimr5s3q8ofn0e0j0
+name: 产品发货物流单关联客户
+tags: []
+---
+
+## RelationType: 产品发货物流单关联客户
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50mbo35s3q8ofn0dui0 | d50j2h35s3q8ofn0drag | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| customer_id | customer_id |

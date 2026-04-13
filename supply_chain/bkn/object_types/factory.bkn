@@ -1,0 +1,49 @@
+---
+type: object_type
+id: d50jaa35s3q8ofn0drmg
+name: 工厂
+tags: []
+---
+
+## ObjectType: 工厂
+
+记录公司下属的各个生产工厂，包含工厂类型、地理位置、产能、生产线、员工规模、认证资质等生产制造相关的完整信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| address | 地址 | string | 工厂的详细地址 | address |
+| area_sqm | 工厂面积 | integer | 工厂占地面积（单位：平方米） | area_sqm |
+| certification | 认证 | string | 工厂获得的认证（如ISO9001等，逗号分隔） | certification |
+| city | 城市 | string | 工厂所在城市 | city |
+| contact_email | 联系邮箱 | string | 工厂联系邮箱 | contact_email |
+| contact_phone | 联系电话 | string | 工厂联系电话 | contact_phone |
+| country | 国家 | string | 工厂所在国家 | country |
+| created_date | 创建日期 | string | 工厂记录创建日期 | created_date |
+| employee_count | 员工数量 | integer | 工厂的员工总数 | employee_count |
+| established_year | 能力年份 | integer | 工厂成立的年份 | established_year |
+| factory_code | 工厂编码 | string | 工厂的业务编码，用于业务单据和查询 | factory_code |
+| factory_id | 工厂id | string | 工厂的唯一标识符，系统内部使用 | factory_id |
+| factory_name | 工厂名称 | string | 工厂的完整名称 | factory_name |
+| factory_type | 工厂类型 | string | 工厂的类型（如总装工厂、机身制造工厂等） | factory_type |
+| manager | 经理 | string | 工厂经理姓名 | manager |
+| production_lines | 生产线 | string | 工厂的生产线列表（逗号分隔） | production_lines |
+| province | 省份 | string | 工厂所在省份 | province |
+| status | 状态 | string | 工厂状态（Active/Inactive等） | status |
+| total_capacity | 总产能 | string | 工厂的总生产能力（单位：台/年、套/年等） | total_capacity |
+
+### Keys
+
+Primary Keys: factory_code
+Display Key: factory_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 0eb843e6-fae3-486b-833e-10b0bebdf965 | factory_entity |
+

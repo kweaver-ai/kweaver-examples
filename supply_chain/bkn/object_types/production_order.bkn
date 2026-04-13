@@ -1,0 +1,48 @@
+---
+type: object_type
+id: d50n6635s3q8ofn0dvk0
+name: 产品生产单
+tags: []
+---
+
+## ObjectType: 产品生产单
+
+记录生产订单的执行情况，包含生产订单号、产出产品信息、生产数量、执行工厂和生产线、计划开始和完成日期、工单状态、优先级等生产计划信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| created_date | 创建日期 | string | 生产订单创建日期 | created_date |
+| factory_id | 工厂id | string | 执行生产的工厂ID标识 | factory_id |
+| factory_name | 工厂名称 | string | 执行生产的工厂名称 | factory_name |
+| line_number | 行号 | integer | 生产订单的行号 | line_number |
+| output_code | 产出编码 | string | 产出物的编码 | output_code |
+| output_id | 产出id | string | 产出物的ID标识 | output_id |
+| output_name | 产出名称 | string | 产出物的名称 | output_name |
+| output_type | 产出类型 | string | 产出物的类型（Product/Material等） | output_type |
+| planned_finish_date | 计划完成日期 | string | 生产计划完成日期 | planned_finish_date |
+| planned_start_date | 计划开始日期 | string | 生产计划开始日期 | planned_start_date |
+| priority | 优先级 | string | 生产订单的优先级（高/中/低） | priority |
+| process_sequence | 工序顺序 | integer | 生产工序的顺序号 | process_sequence |
+| production_line | 生产线 | string | 执行生产的生产线名称 | production_line |
+| production_order_id | 产品生产单id | string | 产品生产单记录的唯一标识符 | production_order_id |
+| production_order_number | 产品生产单编号 | string | 产品生产单的业务编号（如MO-202305001） | production_order_number |
+| production_quantity | 生产数量 | integer | 计划生产的产出物数量 | production_quantity |
+| status | 状态 | string | 生产订单状态（Active/Inactive等） | status |
+| work_order_status | 工单状态 | string | 工单的状态（如已完工等） | work_order_status |
+
+### Keys
+
+Primary Keys: production_order_id
+Display Key: production_order_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | f9ceab33-1a92-4259-8f34-7cb87447e2e2 | production_order_event |
+

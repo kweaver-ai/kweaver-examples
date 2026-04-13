@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50ng7r5s3q8ofn0e0cg
+name: 库存清单关联仓库
+tags: []
+---
+
+## RelationType: 库存清单关联仓库
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50m5rj5s3q8ofn0du90 | d50k70b5s3q8ofn0dsmg | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| warehouse_id | warehouse_id |

@@ -1,0 +1,56 @@
+---
+type: object_type
+id: d50lpfr5s3q8ofn0dtg0
+name: 产品BOM
+tags: []
+---
+
+## ObjectType: 产品BOM
+
+记录产品的物料清单（BOM）关系，定义每个产品由哪些物料组成、用量多少、生效和失效日期、发料方式等产品结构信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| assembly_set | 是否装配组 | string | 标识是否为装配组（是/否） | assembly_set |
+| base_quantity | 基础数量 | integer | BOM的基础数量，用于计算子项用量 | base_quantity |
+| bom_category | BOM类别 | string | BOM的分类（如Consumer等） | bom_category |
+| bom_id | BOMid | string | BOM关系的唯一标识符 | bom_id |
+| bom_version | BOM版本 | string | BOM的版本号（如V2.0） | bom_version |
+| child_code | 子项编码 | string | 子项的编码 | child_code |
+| child_id | 子项id | string | 子项的ID标识 | child_id |
+| child_name | 子项名称 | string | 子项的名称 | child_name |
+| child_quantity | 子项数量 | float | 子项物料的用量数量 | child_quantity |
+| child_type | 子项类型 | string | 子项的类型（Product/Material等） | child_type |
+| child_unit | 子项单位 | string | 子项物料的计量单位 | child_unit |
+| created_by | 创建人 | string | BOM记录的创建人 | created_by |
+| created_date | 创建日期 | string | BOM记录创建日期 | created_date |
+| effective_date | 生效日期 | string | BOM版本的生效日期 | effective_date |
+| expiry_date | 失效日期 | string | BOM版本的失效日期 | expiry_date |
+| issue_method | 发料方式 | string | 物料发放方式（如按订单发料、按计划发料等） | issue_method |
+| line_number | 行号 | integer | BOM中的行号 | line_number |
+| parent_code | 父项编码 | string | 父项的编码 | parent_code |
+| parent_id | 父项id | string | 父项的ID标识 | parent_id |
+| parent_type | 父项类型 | string | 父项的类型（Product/Material等） | parent_type |
+| quantity | 数量 | float | 子项的数量 | quantity |
+| relationship_type | 关系类型 | string | BOM关系的类型（如Standard等） | relationship_type |
+| scrap_rate | 损耗率 | float | 物料的损耗率 | scrap_rate |
+| sequence | 序号 | integer | BOM中的序号 | sequence |
+| status | 状态 | string | BOM状态（Active/Inactive等） | status |
+| unit | 单位 | string | 子项的计量单位 | unit |
+
+### Keys
+
+Primary Keys: bom_id
+Display Key: bom_id
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 48ce5a0d-e717-4786-a319-1aa619060bc0 | bom_event |
+

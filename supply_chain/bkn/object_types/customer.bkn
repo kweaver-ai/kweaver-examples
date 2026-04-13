@@ -1,0 +1,52 @@
+---
+type: object_type
+id: d50j2h35s3q8ofn0drag
+name: 客户
+tags: []
+---
+
+## ObjectType: 客户
+
+客户是记录购买公司产品或服务的各类企业组织，包含其基本信息、行业分类、规模、地理位置、联系方式和业务属性（客户等级、是否重点客户、是否有合同等）的完整信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| address | 公司地址 | string | 客户详细地址 | address |
+| annual_revenue | 年收入 | integer | 公司年营业收入（单位：元） | annual_revenue |
+| city | 城市 | string | 客户所在城市 | city |
+| company_size | 公司规模 | string | 公司规模分类（微型/小型/中型/大型） | company_size |
+| contact_email | 联系邮箱 | string | 联系人电子邮箱 | contact_email |
+| contact_person | 联系人 | string | 主要联系人姓名 | contact_person |
+| contact_phone | 联系手机号 | string | 联系人电话号码 | contact_phone |
+| created_date | 创建日期 | string | 客户记录创建日期 | created_date |
+| customer_code | 客户编号 | string | 客户的业务编码，用于业务单据和查询 | customer_code |
+| customer_id | 客户id | integer | 客户的唯一标识符，系统内部使用 | customer_id |
+| customer_level | 客户等级 | string | 客户分级（T1/T2/T3），用于客户价值评估和分类管理 | customer_level |
+| customer_name | 客户名称 | string | 客户的完整公司名称 | customer_name |
+| customer_type | 客户类型 | string | 客户类型（SMB/Enterprise/Government），区分企业规模和组织性质 | customer_type |
+| established_year | 成立年份 | integer | 公司成立年份 | established_year |
+| has_contract | 是否有合同 | string | 标识是否签署了正式合同（是/否） | has_contract |
+| industry | 行业 | string | 客户所属具体行业 | industry |
+| industry_type | 行业类型 | string | 客户所属行业大类（如农业、测绘、影视传媒等） | industry_type |
+| is_named_customer | 是否重点客户 | string | 标识是否为重要客户（是/否） | is_named_customer |
+| primary_industry | 主行业 | string | 客户的主要业务行业分类 | primary_industry |
+| province | 省份 | string | 客户所在省份 | province |
+| secondary_industry | 次行业 | string | 客户的次要业务行业分类 | secondary_industry |
+| status | 状态 | string | 客户状态（Active/Inactive等） | status |
+
+### Keys
+
+Primary Keys: customer_code
+Display Key: customer_level
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 0466d5e8-0a82-4359-b5af-2badf3c37015 | customer_entity |
+

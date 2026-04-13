@@ -1,0 +1,23 @@
+---
+type: concept_group
+id: d5cvcr9v9d02t1athr60
+name: 事件对象
+tags: []
+---
+
+## ConceptGroup: 事件对象
+
+记录了实体之间的动态交互（如订单流、物流、生产流、库存流）。
+
+### Object Types
+
+| ID | Name | Description |
+|----|------|-------------|
+| d50lpfr5s3q8ofn0dtg0 | 产品BOM |  |
+| d50m0gb5s3q8ofn0dts0 | 销售订单 |  |
+| d50m5rj5s3q8ofn0du90 | 库存清单 |  |
+| d50mbo35s3q8ofn0dui0 | 产品发货物流单 |  |
+| d50mogj5s3q8ofn0duug | 物料发货单 |  |
+| d50mu335s3q8ofn0dv00 | 采购订单 |  |
+| d50n6635s3q8ofn0dvk0 | 产品生产单 |  |
+| d50nafb5s3q8ofn0dvl0 | 物料领料单 |  |

@@ -1,0 +1,37 @@
+---
+type: object_type
+id: d50jqrr5s3q8ofn0dscg
+name: 产品
+tags: []
+---
+
+## ObjectType: 产品
+
+记录公司生产销售的所有产品，包含产品编码、名称、类型、主单位等产品主数据信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| created_date | 创建日期 | string | 产品记录创建日期 | created_date |
+| main_unit | 主单位 | string | 产品的主要计量单位（如台等） | main_unit |
+| product_code | 产品编码 | string | 产品的业务编码，用于业务单据和查询 | product_code |
+| product_id | 产品id | string | 产品的唯一标识符，系统内部使用 | product_id |
+| product_name | 产品名称 | string | 产品的完整名称 | product_name |
+| product_type | 产品类型 | string | 产品的类型（如UAV等） | product_type |
+| status | 状态 | string | 产品状态（Active/Inactive等） | status |
+
+### Keys
+
+Primary Keys: product_code
+Display Key: product_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 81d60443-ca6e-49c2-b377-4b89b7752cd4 | product_entity |
+

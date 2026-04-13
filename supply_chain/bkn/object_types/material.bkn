@@ -1,0 +1,39 @@
+---
+type: object_type
+id: d50jpcb5s3q8ofn0dsb0
+name: 物料
+tags: []
+---
+
+## ObjectType: 物料
+
+记录生产过程中使用的所有物料（包括原材料、零件、组件等），包含物料编码、名称、类型、单位、是否虚拟件、是否组件等物料主数据信息。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| created_date | 创建日期 | string | 物料记录创建日期 | created_date |
+| is_assembly | 是否组件 | string | 标识是否为组件（是/否），组件由多个子件组成 | is_assembly |
+| is_virtual | 是否虚拟件 | string | 标识是否为虚拟件（是/否），虚拟件不实际存在 | is_virtual |
+| material_code | 物料编码 | string | 物料的业务编码，用于业务单据和查询 | material_code |
+| material_id | 物料id | string | 物料的唯一标识符，系统内部使用 | material_id |
+| material_name | 物料名称 | string | 物料的完整名称 | material_name |
+| material_type | 物料类型 | string | 物料的类型（如组件、零件、原材料等） | material_type |
+| status | 状态 | string | 物料状态（Active/Inactive等） | status |
+| unit | 单位 | string | 物料的计量单位（如套、个、件等） | unit |
+
+### Keys
+
+Primary Keys: material_code
+Display Key: material_name
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | 2f656b39-1ace-408b-a578-d064fdd00700 | material_entity |
+

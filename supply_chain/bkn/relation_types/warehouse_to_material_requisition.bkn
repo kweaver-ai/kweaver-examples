@@ -1,0 +1,20 @@
+---
+type: relation_type
+id: d50ngqj5s3q8ofn0e0dg
+name: 仓库关联物料领料单
+tags: []
+---
+
+## RelationType: 仓库关联物料领料单
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50k70b5s3q8ofn0dsmg | d50nafb5s3q8ofn0dvl0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| warehouse_id | warehouse_id |
