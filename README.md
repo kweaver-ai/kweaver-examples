@@ -1,5 +1,7 @@
 # kweaver-examples
 
+[中文版](README.zh-CN.md)
+
 Example **cases** for the KWeaver platform: assets you can push with the `kweaver` CLI and optional automation.
 
 ## Cases
