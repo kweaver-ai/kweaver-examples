@@ -7,12 +7,14 @@ tags: []
 
 ## ObjectType: 产品BOM
 
-记录产品的物料清单（BOM）关系，定义每个产品由哪些物料组成、用量多少、生效和失效日期、发料方式等产品结构信息。
+记录产品的物料清单（BOM）关系，定义每个产品由哪些物料组成、用量多少、生效和失效日期、发料方式等产品结构信息。齐套分析默认仅使用主料：`alt_priority = 0` 为主料，`> 0` 为替代料（替代料不参与倒排与共用物料核算，见 `reference/PRD_动态计划协同_齐套分析与监测.md`）。
 
 ### Data Properties
 
 | Name | Display Name | Type | Description | Mapped Field |
 |------|--------------|------|-------------|--------------|
+| alt_group_no | 替代组号 | string | 替代料分组标识 | alt_group_no |
+| alt_priority | 主料优先级 | integer | 0=主料，大于0为替代料；齐套与多产品监测仅统计主料 | alt_priority |
 | assembly_set | 是否装配组 | string | 标识是否为装配组（是/否） | assembly_set |
 | base_quantity | 基础数量 | integer | BOM的基础数量，用于计算子项用量 | base_quantity |
 | bom_category | BOM类别 | string | BOM的分类（如Consumer等） | bom_category |

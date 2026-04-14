@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r3s3q8ofn0ex13
+name: MRP关联采购申请
+tags: []
+---
+
+## RelationType: MRP关联采购申请
+
+外购/委外执行链：采购申请的来源单号为 MRP 单号（演示数据字段 `srcbillid` ↔ `mrp_plan_order.billno`）。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx002s3q8ofn0ex02 | d50nx003s3q8ofn0ex03 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| billno | srcbillid |

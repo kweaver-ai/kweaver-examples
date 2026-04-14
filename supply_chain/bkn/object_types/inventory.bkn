@@ -7,7 +7,7 @@ tags: []
 
 ## ObjectType: 库存清单
 
-记录仓库中物料和产品的库存快照，包含批次号、数量、单价、总价、最早入库日期、最大存储期限、存储原因、消耗路径等库存明细信息。
+记录仓库中物料和产品的库存快照，包含批次号、数量、单价、总价、最早入库日期、最大存储期限、存储原因、消耗路径等库存明细信息。齐套与供应判定优先使用可用量口径：`available_inventory_qty`（可用库存）；演示表中可用 `quantity - reserved_inventory_qty` 派生或后续扩展字段映射。
 
 ### Data Properties
 
@@ -23,7 +23,8 @@ tags: []
 | item_name | 物品名称 | string | 物品的名称 | item_name |
 | item_type | 物品类型 | string | 物品类型（Product/Material等） | item_type |
 | max_storage_age | 最大存储期限 | integer | 物料的最大存储期限（单位：月） | max_storage_age |
-| quantity | 数量 | integer | 库存数量 | quantity |
+| quantity | 数量 | integer | 库存数量（演示数据中为账面/在库数量；可用库存按业务规则扣减预留） | quantity |
+| reserved_inventory_qty | 预留库存数量 | integer | 已预留数量；净可用可结合 quantity 计算 | reserved_inventory_qty |
 | snapshot_month | 快照月份 | string | 库存快照的月份（格式：YYYY-MM） | snapshot_month |
 | status | 状态 | string | 库存状态（Active/Inactive等） | status |
 | storage_note | 存储备注 | string | 库存存储的相关备注信息 | storage_note |

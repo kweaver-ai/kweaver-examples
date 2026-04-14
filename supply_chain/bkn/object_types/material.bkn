@@ -7,7 +7,7 @@ tags: []
 
 ## ObjectType: 物料
 
-记录生产过程中使用的所有物料（包括原材料、零件、组件等），包含物料编码、名称、类型、单位、是否虚拟件、是否组件等物料主数据信息。
+记录生产过程中使用的所有物料（包括原材料、零件、组件等），包含物料编码、名称、类型、单位、是否虚拟件、是否组件等物料主数据信息。对齐齐套分析 PRD：外购/委外标准交期对应字段 `purchase_fixedleadtime`，自制对应 `product_fixedleadtime`，物料属性 `materialattr`（外购/委外/自制）用于分叉采购链与生产链；当前演示 CSV 未包含上述列时，可在数据源扩展后补映射。
 
 ### Data Properties
 
@@ -19,7 +19,9 @@ tags: []
 | material_code | 物料编码 | string | 物料的业务编码，用于业务单据和查询 | material_code |
 | material_id | 物料id | string | 物料的唯一标识符，系统内部使用 | material_id |
 | material_name | 物料名称 | string | 物料的完整名称 | material_name |
-| material_type | 物料类型 | string | 物料的类型（如组件、零件、原材料等） | material_type |
+| material_type | 物料类型 | string | 物料的类型（如组件、零件、原材料等）；与 PRD 中 materialattr 口径可映射或并存 | material_type |
+| product_fixedleadtime | 生产固定提前期 | integer | 自制件标准交期（天）；齐套倒排用，演示数据缺省时可不映射 | product_fixedleadtime |
+| purchase_fixedleadtime | 采购固定提前期 | integer | 外购/委外标准交期（天）；齐套倒排用，演示数据缺省时可不映射 | purchase_fixedleadtime |
 | status | 状态 | string | 物料状态（Active/Inactive等） | status |
 | unit | 单位 | string | 物料的计量单位（如套、个、件等） | unit |
 

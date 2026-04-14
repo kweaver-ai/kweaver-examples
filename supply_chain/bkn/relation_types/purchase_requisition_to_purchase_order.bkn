@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r4s3q8ofn0ex14
+name: 采购申请关联采购订单
+tags: []
+---
+
+## RelationType: 采购申请关联采购订单
+
+PR 下达为 PO：演示数据中采购订单 `srcbillid` 指向采购申请主键 `pr_id`（非 PR 业务单号 billno）。映射按数据视图实际字段绑定。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx003s3q8ofn0ex03 | d50mu335s3q8ofn0dv00 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| pr_id | srcbillid |

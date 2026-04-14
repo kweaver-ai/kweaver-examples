@@ -1,0 +1,24 @@
+---
+type: concept_group
+id: d5cvplco9d02t1athpco
+name: 动态计划协同
+tags: []
+---
+
+## ConceptGroup: 动态计划协同
+
+覆盖《动态计划协同 — 齐套分析与监测》PRD 中的预测驱动、双链执行（采购 PR→PO、自制 MRP→生产工单）及与产品/BOM/物料/库存的衔接。与「订单到发货」全链路对象互补：本组强调 **Forecast→MRP→(PR→PO | 生产工单)** 的可追溯关联。
+
+### Object Types
+
+| ID | Name | Description |
+|----|------|-------------|
+| d50nx001s3q8ofn0ex01 | 需求预测 | 预测单行，billno 衔接 MRP.rootdemandbillno |
+| d50nx002s3q8ofn0ex02 | MRP计划订单 | 根需求、物料属性、投放时间；分叉采购/生产 |
+| d50nx003s3q8ofn0ex03 | 采购申请 | 外购/委外 PR，srcbillid 指向 MRP billno |
+| d50jqrr5s3q8ofn0dscg | 产品 | BOM 根、齐套倒排起点 |
+| d50lpfr5s3q8ofn0dtg0 | 产品BOM | 主料展开、standard_usage |
+| d50jpcb5s3q8ofn0dsb0 | 物料 | 标准交期、类型（与 MRP materialattr 协同） |
+| d50m5rj5s3q8ofn0du90 | 库存清单 | 供给量与可用口径 |
+| d50mu335s3q8ofn0dv00 | 采购订单 | 在途、承诺交期；衔接 PR |
+| d50n6635s3q8ofn0dvk0 | 产品生产单 | 自制 MPS，sourcebillnumber 衔接 MRP |

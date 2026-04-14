@@ -29,6 +29,7 @@ tags: []
 | production_order_id | 产品生产单id | string | 产品生产单记录的唯一标识符 | production_order_id |
 | production_order_number | 产品生产单编号 | string | 产品生产单的业务编号（如MO-202305001） | production_order_number |
 | production_quantity | 生产数量 | integer | 计划生产的产出物数量 | production_quantity |
+| sourcebillnumber | 来源MRP单号 | string | 自制件 MRP billno；Forecast→MRP(自制)→MPS 生产链关联键 | sourcebillnumber |
 | status | 状态 | string | 生产订单状态（Active/Inactive等） | status |
 | work_order_status | 工单状态 | string | 工单的状态（如已完工等） | work_order_status |
 

@@ -1,15 +1,15 @@
 # Supply chain business knowledge network (BKN)
 
-Modular BKN for the supply-chain demo: entities (customer, factory, supplier, …), transactional objects (orders, inventory, BOM, …), and relations between them.
+Modular BKN for the supply-chain demo: master entities, transactional orders and inventory, **forecast / MRP / PR** for kitting & planning (see `reference/PRD_动态计划协同_齐套分析与监测.md`), and relations between them.
 
 ## Layout
 
 | Kind | Directory | Count |
 |------|-----------|-------|
 | Network root | [`network.bkn`](network.bkn) | 1 |
-| Object types | [`object_types/`](object_types/) | 14 |
-| Relation types | [`relation_types/`](relation_types/) | 17 |
-| Concept groups | [`concept_groups/`](concept_groups/) | 3 |
+| Object types | [`object_types/`](object_types/) | 17 |
+| Relation types | [`relation_types/`](relation_types/) | 23 |
+| Concept groups | [`concept_groups/`](concept_groups/) | 4 |
 
 ## Object types (`object_types/`)
 
@@ -29,6 +29,9 @@ Modular BKN for the supply-chain demo: entities (customer, factory, supplier, �
 | 采购订单 | [object_types/purchase_order.bkn](object_types/purchase_order.bkn) |
 | 产品生产单 | [object_types/production_order.bkn](object_types/production_order.bkn) |
 | 物料领料单 | [object_types/material_requisition.bkn](object_types/material_requisition.bkn) |
+| 需求预测 | [object_types/forecast.bkn](object_types/forecast.bkn) |
+| MRP计划订单 | [object_types/mrp_plan_order.bkn](object_types/mrp_plan_order.bkn) |
+| 采购申请 | [object_types/purchase_requisition.bkn](object_types/purchase_requisition.bkn) |
 
 ## Relation types (`relation_types/`)
 
@@ -51,6 +54,12 @@ Modular BKN for the supply-chain demo: entities (customer, factory, supplier, �
 | 采购订单关联供应商 | [relation_types/purchase_order_from_supplier.bkn](relation_types/purchase_order_from_supplier.bkn) |
 | 供应商提供物料发货单 | [relation_types/supplier_delivers_material_shipment.bkn](relation_types/supplier_delivers_material_shipment.bkn) |
 | 物料发货单关联仓库 | [relation_types/material_shipment_to_warehouse.bkn](relation_types/material_shipment_to_warehouse.bkn) |
+| 预测行关联产品 | [relation_types/forecast_line_targets_product.bkn](relation_types/forecast_line_targets_product.bkn) |
+| 预测单关联MRP需求 | [relation_types/forecast_roots_mrp_plan.bkn](relation_types/forecast_roots_mrp_plan.bkn) |
+| MRP关联采购申请 | [relation_types/mrp_plan_triggers_purchase_requisition.bkn](relation_types/mrp_plan_triggers_purchase_requisition.bkn) |
+| 采购申请关联采购订单 | [relation_types/purchase_requisition_to_purchase_order.bkn](relation_types/purchase_requisition_to_purchase_order.bkn) |
+| MRP关联生产工单 | [relation_types/mrp_plan_drives_production_order.bkn](relation_types/mrp_plan_drives_production_order.bkn) |
+| MRP关联物料 | [relation_types/mrp_plan_targets_material.bkn](relation_types/mrp_plan_targets_material.bkn) |
 
 ## Concept groups (`concept_groups/`)
 
@@ -59,6 +68,7 @@ Modular BKN for the supply-chain demo: entities (customer, factory, supplier, �
 | 实体对象 | [concept_groups/entity_objects.bkn](concept_groups/entity_objects.bkn) |
 | 事件对象 | [concept_groups/event_objects.bkn](concept_groups/event_objects.bkn) |
 | 衍生对象 | [concept_groups/derived_objects.bkn](concept_groups/derived_objects.bkn) |
+| 动态计划协同 | [concept_groups/planning_coordination.bkn](concept_groups/planning_coordination.bkn) |
 
 ## Validate & push
 
@@ -67,4 +77,4 @@ kweaver bkn validate supply_chain/bkn
 kweaver bkn push supply_chain/bkn
 ```
 
-After push, bind each object type’s **Data Source** to the correct atomic data views in Studio (see [../README.md](../README.md)).
+After push, bind each object type’s **Data Source** to the correct atomic data views in Studio. New types use placeholder data-view UUIDs in the `.bkn` files — replace with your environment’s view IDs for `forecast_event`, `mrp_plan_order_event_update`, and `purchase_requisition_event` (see [../README.md](../README.md)).

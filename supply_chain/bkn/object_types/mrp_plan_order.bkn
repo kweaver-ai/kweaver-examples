@@ -1,0 +1,52 @@
+---
+type: object_type
+id: d50nx002s3q8ofn0ex02
+name: MRP计划订单
+tags: []
+---
+
+## ObjectType: MRP计划订单
+
+ERP MRP 运算输出的计划订单行：物料属性 `materialattr_title`（外购/委外/自制）决定后续走采购链（PR→PO）还是生产链（MPS/生产工单）。`rootdemandbillno` 指向来源预测单号；`billno` 为 MRP 单号，用于 PR.srcbillid、自制场景下生产工单 `sourcebillnumber`。对齐 PRD 中 `supplychain_hd0202_mrp`。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| adviseenddate | 建议结束日 | date | 建议计划结束日 | adviseenddate |
+| adviseorderqty | 建议订单量 | float | 建议订单数量 | adviseorderqty |
+| advisestartdate | 建议开始日 | date | 建议计划开始日 | advisestartdate |
+| availabledate | 可用日 | date | 可用日期 | availabledate |
+| billno | MRP单号 | string | MRP 业务单号；PR 来源、自制工单 sourcebillnumber 均引用此号 | billno |
+| bizorderqty | 业务数量 | float | 业务确认数量 | bizorderqty |
+| closestatus_reason | 关闭原因 | string | 关闭原因说明 | closestatus_reason |
+| closestatus_title | 关闭状态 | string | 是否关闭等 | closestatus_title |
+| createtime | 创建时间 | datetime | 创建时间 | createtime |
+| creator_name | 创建人 | string | 创建人 | creator_name |
+| dropbilltype_name | 投放单据类型 | string | 投放目标单据类型（如采购申请、生产工单） | dropbilltype_name |
+| droptime | 投放时间 | datetime | MRP 投放时间；工单追踪与 MRP 对齐展示 | droptime |
+| enddate | 结束日 | date | 计划结束日 | enddate |
+| materialattr_title | 物料属性 | string | 外购/委外/自制；自制条目用于筛选 selfMadeMrpBillnos 关联 MPS | materialattr_title |
+| materialplanid_name | 物料名称 | string | 计划物料名称 | materialplanid_name |
+| materialplanid_number | 物料编码 | string | 计划物料编码 | materialplanid_number |
+| mrp_id | MRP行id | string | MRP 行唯一标识 | mrp_id |
+| orderdate | 订单日 | date | 订单日期 | orderdate |
+| planoperatenum | 计划运算号 | string | MRP 运算批次号 | planoperatenum |
+| rootdemandbillno | 根需求单号 | string | 来源预测单 billno，衔接 Forecast→MRP | rootdemandbillno |
+| startdate | 开始日 | date | 计划开始日 | startdate |
+| status | 状态 | string | 行状态 | status |
+
+### Keys
+
+Primary Keys: mrp_id
+Display Key: billno
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | f1111111-1111-4111-a111-111111110102 | mrp_plan_order_event_update |
+

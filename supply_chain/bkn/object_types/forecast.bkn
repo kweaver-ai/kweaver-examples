@@ -1,0 +1,40 @@
+---
+type: object_type
+id: d50nx001s3q8ofn0ex01
+name: 需求预测
+tags: []
+---
+
+## ObjectType: 需求预测
+
+客户需求预测单行（大预测单下的产品线）：含预测单号 `billno`、产品编码 `material_number`、预测数量 `qty`、需求周期 `startdate`/`enddate`（交货截止日对齐 `enddate`）。与《动态计划协同 — 齐套分析与监测》PRD 中 `supplychain_hd0202_forecast` 语义一致，支撑单产品/多产品监测任务的预测维度。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| billno | 预测单号 | string | 预测/大预测单业务单号；MRP 通过 rootdemandbillno 回指本单 | billno |
+| created_date | 创建日期 | string | 记录创建日期 | created_date |
+| creator | 创建人 | string | 创建人 | creator |
+| enddate | 需求截止日 | date | 交货/需求截止日；多产品共用物料倒排时取关联产品中最早截止日为基准 | enddate |
+| forecast_id | 预测行id | string | 预测行唯一标识 | forecast_id |
+| forecast_month | 预测月份 | string | 预测归属月份 | forecast_month |
+| material_name | 产品/物料名称 | string | 行上产品名称 | material_name |
+| material_number | 产品编码 | string | 行上产品编码；与产品主数据 product_code 对齐 | material_number |
+| qty | 预测数量 | float | 预测数量 | qty |
+| startdate | 需求开始日 | date | 需求周期开始 | startdate |
+| status | 状态 | string | 行状态 | status |
+
+### Keys
+
+Primary Keys: forecast_id
+Display Key: billno
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | f1111111-1111-4111-a111-111111110101 | forecast_event |

@@ -1,0 +1,44 @@
+---
+type: object_type
+id: d50nx003s3q8ofn0ex03
+name: 采购申请
+tags: []
+---
+
+## ObjectType: 采购申请
+
+采购申请单（PR）：由 MRP 缺口触发，`srcbillid` 存放来源 MRP 单号（`mrp_plan_order.billno`）。下达后生成采购订单；本对象与「物料领料单」不同，专指外购/委外执行链。对齐 PRD 中 `supplychain_hd0202_pr`。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| billno | PR单号 | string | 采购申请业务单号 | billno |
+| biztime | 业务日期 | date | 业务日期 | biztime |
+| buyer | 采购员 | string | 申请人/采购员 | buyer |
+| created_date | 创建日期 | string | 创建日期 | created_date |
+| entry_id | 分录id | string | 行分录标识 | entry_id |
+| material_name | 物料名称 | string | 物料名称 | material_name |
+| material_number | 物料编码 | string | 物料编码 | material_number |
+| material_type | 物料类型 | string | 外购/委外等 | material_type |
+| plant | 工厂/组织 | string | 工厂或计划组织 | plant |
+| pr_id | PR记录id | string | PR 记录唯一标识 | pr_id |
+| qty | 申请数量 | float | 申请数量 | qty |
+| srcbillid | 来源MRP单号 | string | 来源 MRP billno；采购链 Forecast→MRP→PR 精确关联 | srcbillid |
+| status | 状态 | string | PR 状态 | status |
+| unit | 单位 | string | 计量单位 | unit |
+
+### Keys
+
+Primary Keys: pr_id
+Display Key: billno
+Incremental Key: 
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | f1111111-1111-4111-a111-111111110103 | purchase_requisition_event |
+

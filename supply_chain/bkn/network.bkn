@@ -8,10 +8,10 @@ business_domain: 54308785-4438-43df-9490-a7fd11df5765
 
 # 供应链业务知识网络
 
-本业务知识网络完整覆盖从订单到发货的全供应链业务流程数据，包含6个实体对象（客户、供应商、工厂、仓库、产品、物料）和8个事件对象（销售订单、采购订单、生产订单、物料采购、发货、库存、BOM、物料领料）。
+本网络覆盖从订单到发货的全链路数据，并扩展 **动态计划协同 / 齐套分析与监测**（见 `reference/PRD_动态计划协同_齐套分析与监测.md`）：需求预测、MRP、采购申请与采购/生产双执行链，以及产品—BOM—物料—库存的齐套推理基础。Ontology 对象命名可与平台 `supplychain_hd0202_*` 类型语义对齐。
 
 ## Network Overview
 
-- **ObjectTypes** (object_types/): customer, factory, supplier, material, product, warehouse, bom, sales_order, inventory, shipment, material_procurement, purchase_order, production_order, material_requisition
-- **RelationTypes** (relation_types/): customer_places_sales_order, sales_order_contains_product, product_links_bom, material_in_bom, material_in_inventory, product_in_inventory, inventory_in_warehouse, warehouse_to_material_requisition, material_requisition_to_factory, factory_to_production_order, production_order_for_product, warehouse_provides_shipment, shipment_to_customer, purchase_order_contains_material, purchase_order_from_supplier, supplier_delivers_material_shipment, material_shipment_to_warehouse
-- **ConceptGroups** (concept_groups/): entity_objects, event_objects, derived_objects
+- **ObjectTypes** (object_types/): customer, factory, supplier, material, product, warehouse, bom, sales_order, inventory, shipment, material_procurement, purchase_order, production_order, material_requisition, forecast, mrp_plan_order, purchase_requisition
+- **RelationTypes** (relation_types/): customer_places_sales_order, sales_order_contains_product, product_links_bom, material_in_bom, material_in_inventory, product_in_inventory, inventory_in_warehouse, warehouse_to_material_requisition, material_requisition_to_factory, factory_to_production_order, production_order_for_product, warehouse_provides_shipment, shipment_to_customer, purchase_order_contains_material, purchase_order_from_supplier, supplier_delivers_material_shipment, material_shipment_to_warehouse, forecast_line_targets_product, forecast_roots_mrp_plan, mrp_plan_triggers_purchase_requisition, purchase_requisition_to_purchase_order, mrp_plan_drives_production_order, mrp_plan_targets_material
+- **ConceptGroups** (concept_groups/): entity_objects, event_objects, derived_objects, planning_coordination

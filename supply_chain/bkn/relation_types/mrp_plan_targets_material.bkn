@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r6s3q8ofn0ex16
+name: MRP关联物料
+tags: []
+---
+
+## RelationType: MRP关联物料
+
+MRP 计划行上的物料编码与物料主数据关联，用于净需求、供应状态与采购/生产链展示。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx002s3q8ofn0ex02 | d50jpcb5s3q8ofn0dsb0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| materialplanid_number | material_code |

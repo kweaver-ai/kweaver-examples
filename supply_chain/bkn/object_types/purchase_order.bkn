@@ -30,6 +30,8 @@ tags: []
 | required_date | 需求日期 | string | 物料的需求日期 | required_date |
 | risk_level | 风险等级 | string | 供应商的风险等级（高/中/低） | risk_level |
 | status | 状态 | string | 采购订单状态（Active/Inactive等） | status |
+| srcbillentryid | 来源分录id | string | 来源单据分录（如 PR 行） | srcbillentryid |
+| srcbillid | 来源单据id | string | 来源采购申请 pr_id；衔接 PR→PO 执行链 | srcbillid |
 | supplier_id | 供应商id | string | 供应商的ID标识 | supplier_id |
 | supplier_level | 供应商等级 | string | 供应商的等级分类（战略/核心/一般） | supplier_level |
 | supplier_name | 供应商名称 | string | 供应商的名称 | supplier_name |

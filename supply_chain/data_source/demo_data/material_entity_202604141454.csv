@@ -1,0 +1,128 @@
+"material_id","material_code","material_name","material_type","unit","is_virtual","is_assembly","created_date","status"
+M0001,ASSY-BODY-PLA-01,入门塑料机身总成,组件,套,否,是,"2025-01-01",Active
+M0002,ASSY-FC-BASIC,基础飞控总成,组件,套,否,是,"2025-01-01",Active
+M0003,PART-CAM-FIX-12MP,"1200万像素固定相机",零件,个,否,否,"2025-01-01",Active
+M0004,ASSY-PWR-STD,标准动力系统总成,组件,套,否,是,"2025-01-01",Active
+M0005,PART-BAT-2S-3000,标准智能电池2S3000mAh,零件,块,否,否,"2025-01-01",Active
+M0006,PART-RC-BASIC,基础遥控器,零件,个,否,否,"2025-01-01",Active
+M0007,PART-CAM-FIX-20MP,"2000万像素固定相机",零件,个,否,否,"2025-01-01",Active
+M0008,PART-BAT-3S-4000,增强智能电池3S4000mAh,零件,块,否,否,"2025-01-01",Active
+M0009,PART-RC-ADV,高级遥控器,零件,个,否,否,"2025-01-01",Active
+M0010,ASSY-BODY-CF-01,碳纤维机身总成,组件,套,否,是,"2025-01-01",Active
+M0011,ASSY-FC-ADV,高级飞控总成,组件,套,否,是,"2025-01-01",Active
+M0012,PART-CAM-GIMBAL-1INCH,"1英寸三轴云台相机",零件,套,否,否,"2025-01-01",Active
+M0013,ASSY-PWR-EFF,高效动力系统总成,组件,套,否,是,"2025-01-01",Active
+M0014,PART-BAT-4S-5200,高容智能电池4S5200mAh,零件,块,否,否,"2025-01-01",Active
+M0015,PART-RC-PRO,专业遥控器,零件,个,否,否,"2025-01-01",Active
+M0016,PART-AVOID-VISION,视觉避障系统,零件,套,否,否,"2025-01-01",Active
+M0017,PART-CAM-ZOOM,变焦相机模组,零件,套,否,否,"2025-01-01",Active
+M0018,PART-AVOID-ENHANCED,增强避障系统（视觉+红外）,零件,套,否,否,"2025-01-01",Active
+M0019,VIRT-CAM-SEL,相机配置选择件,虚拟件,套,是,否,"2025-01-01",Active
+M0020,ASSY-BODY-IND-01,工业级强化机身总成,组件,套,否,是,"2025-01-01",Active
+M0021,ASSY-FC-RTK,RTK高精度飞控总成,组件,套,否,是,"2025-01-01",Active
+M0022,PART-CAM-FPV,FPV图传相机,零件,个,否,否,"2025-01-01",Active
+M0023,ASSY-PWR-TQ,高扭矩动力系统总成,组件,套,否,是,"2025-01-01",Active
+M0024,ASSY-BAT-DUAL,双电池冗余系统,组件,套,否,是,"2025-01-01",Active
+M0025,PART-RC-IND,工业遥控器,零件,个,否,否,"2025-01-01",Active
+M0026,PART-SPRAYER-16L,"16升智能喷洒系统",零件,套,否,否,"2025-01-01",Active
+M0027,PART-RADAR-ALT,雷达测高仪,零件,个,否,否,"2025-01-01",Active
+M0028,PART-CAM-SURVEY-42MP,"4200万像素测绘相机",零件,套,否,否,"2025-01-01",Active
+M0029,PART-LIDAR,激光雷达模块,零件,套,否,否,"2025-01-01",Active
+M0030,PART-CAM-THERMAL,红外热成像相机,零件,套,否,否,"2025-01-01",Active
+M0031,PART-CAM-ZOOM-30X,"30倍变焦可见光相机",零件,套,否,否,"2025-01-01",Active
+M0032,PART-SPOTLIGHT-50W,"50W强光照明灯",零件,个,否,否,"2025-01-01",Active
+M0033,PART-FRAME-HEX-CF,六轴碳纤维机架,零件,套,否,否,"2025-01-01",Active
+M0034,PART-BAT-12S-16000,"12S16000mAh工业电池",零件,块,否,否,"2025-01-01",Active
+M0035,PART-SPRAYER-20L,"20升智能喷洒系统",零件,套,否,否,"2025-01-01",Active
+M0036,PART-FRAME-HEX-CF-HD,六轴重载碳纤维机架,零件,套,否,否,"2025-01-01",Active
+M0037,PART-MOTOR-5010-PRO,"5010重载无刷电机",零件,个,否,否,"2025-01-01",Active
+M0038,PART-ESC-60A,"60A电调",零件,个,否,否,"2025-01-01",Active
+M0039,PART-PROP-3016-CF,"3016碳纤螺旋桨",零件,副,否,否,"2025-01-01",Active
+M0040,PART-BAT-12S-22000,"12S22000mAh重载电池",零件,块,否,否,"2025-01-01",Active
+M0041,PART-SPRAYER-30L,"30升智能喷洒系统",零件,套,否,否,"2025-01-01",Active
+M0042,COMP-FRAME-PLA,塑料机身框架,部件,个,否,是,"2025-01-01",Active
+M0043,COMP-COVER-PLA-UP,塑料上盖,部件,个,否,是,"2025-01-01",Active
+M0044,COMP-COVER-PLA-DN,塑料下盖,部件,个,否,是,"2025-01-01",Active
+M0045,COMP-LG-PLA,塑料起落架,部件,个,否,是,"2025-01-01",Active
+M0046,PART-SCREW-M3-10,M3x10螺钉,零件,颗,否,否,"2025-01-01",Active
+M0047,PART-DAMPER-SOFT,减震球,零件,个,否,否,"2025-01-01",Active
+M0048,COMP-FRAME-CF,碳纤维机身框架,部件,个,否,是,"2025-01-01",Active
+M0049,COMP-ARM-CF-TUBE,碳纤维机臂管,部件,根,否,是,"2025-01-01",Active
+M0050,COMP-MOTOR-MOUNT-AL,铝合金电机座,部件,个,否,是,"2025-01-01",Active
+M0051,COMP-LG-CF,碳纤维起落架,部件,套,否,是,"2025-01-01",Active
+M0052,PART-SCREW-M3-12,M3x12螺钉,零件,颗,否,否,"2025-01-01",Active
+M0053,PART-DAMPER-MED,中等硬度减震球,零件,个,否,否,"2025-01-01",Active
+M0054,COMP-FRAME-CF-IND,工业级碳纤维框架,部件,个,否,是,"2025-01-01",Active
+M0055,COMP-ARM-CF-TUBE-HD,加强型碳纤维机臂,部件,根,否,是,"2025-01-01",Active
+M0056,COMP-MOTOR-MOUNT-AL-HD,重载铝合金电机座,部件,个,否,是,"2025-01-01",Active
+M0057,COMP-LG-AL-IND,工业铝合金起落架,部件,套,否,是,"2025-01-01",Active
+M0058,PART-SCREW-M4-16,M4x16螺钉,零件,颗,否,否,"2025-01-01",Active
+M0059,PART-DAMPER-HARD,硬质减震球,零件,个,否,否,"2025-01-01",Active
+M0060,COMP-FC-PCB-B1,基础飞控主板,部件,块,否,是,"2025-01-01",Active
+M0061,PART-IMU-MPU6050,MPU6050六轴传感器,零件,颗,否,否,"2025-01-01",Active
+M0062,PART-BARO-MS5611,MS5611气压计,零件,颗,否,否,"2025-01-01",Active
+M0063,PART-GNSS-UBLOX-M8N,uBlox M8N GPS模块,零件,个,否,否,"2025-01-01",Active
+M0064,PART-COMPASS-QMC5883,QMC5883电子罗盘,零件,颗,否,否,"2025-01-01",Active
+M0065,COMP-FC-CASE-PLA,飞控塑料外壳,部件,套,否,是,"2025-01-01",Active
+M0066,COMP-FC-PCB-A1,高级飞控主板,部件,块,否,是,"2025-01-01",Active
+M0067,PART-IMU-ICM20689,ICM20689高精度IMU,零件,颗,否,否,"2025-01-01",Active
+M0068,PART-BARO-DPS310,DPS310高精度气压计,零件,颗,否,否,"2025-01-01",Active
+M0069,PART-GNSS-UBLOX-M9N,uBlox M9N多频GPS,零件,个,否,否,"2025-01-01",Active
+M0070,PART-COMPASS-IST8310,IST8310三轴罗盘,零件,颗,否,否,"2025-01-01",Active
+M0071,COMP-FC-CASE-AL,飞控铝合金外壳,部件,套,否,是,"2025-01-01",Active
+M0072,COMP-FC-PCB-R1,RTK飞控主板,部件,块,否,是,"2025-01-01",Active
+M0073,PART-IMU-ADIS16505,ADIS16505工业级IMU,零件,个,否,否,"2025-01-01",Active
+M0074,PART-GNSS-RTK-F9P,ZED-F9P RTK定位模块,零件,个,否,否,"2025-01-01",Active
+M0075,PART-4G-MODULE,"4G通信模块",零件,个,否,否,"2025-01-01",Active
+M0076,COMP-FC-CASE-AL-IND,工业级铝合金外壳,部件,套,否,是,"2025-01-01",Active
+M0077,PART-MOTOR-2212-920KV,"2212 920KV无刷电机",零件,个,否,否,"2025-01-01",Active
+M0078,PART-ESC-30A,"30A电调",零件,个,否,否,"2025-01-01",Active
+M0079,PART-PROP-9045,"9045塑料螺旋桨",零件,副,否,否,"2025-01-01",Active
+M0080,PART-CABLE-ESC,电调连接线,零件,根,否,否,"2025-01-01",Active
+M0081,PART-MOTOR-2312-960KV,"2312 960KV高效电机",零件,个,否,否,"2025-01-01",Active
+M0082,PART-ESC-40A,"40A电调",零件,个,否,否,"2025-01-01",Active
+M0083,PART-PROP-9450-CF,"9450碳纤维螺旋桨",零件,副,否,否,"2025-01-01",Active
+M0084,PART-CABLE-ESC-SIL,硅胶电调线,零件,根,否,否,"2025-01-01",Active
+M0085,PART-MOTOR-4114-400KV,"4114 400KV高扭矩电机",零件,个,否,否,"2025-01-01",Active
+M0086,PART-ESC-50A-FOC,"50A FOC电调",零件,个,否,否,"2025-01-01",Active
+M0087,PART-PROP-1755-CF,"1755碳纤维螺旋桨",零件,副,否,否,"2025-01-01",Active
+M0088,PART-CABLE-ESC-HD,加强型电调线,零件,根,否,否,"2025-01-01",Active
+M0089,PART-BAT-6S-10000,"6S10000mAh智能电池",零件,块,否,否,"2025-01-01",Active
+M0090,COMP-BAT-MANAGER,双电池管理模块,部件,块,否,是,"2025-01-01",Active
+M0091,COMP-BAT-MOUNT,电池固定架,部件,套,否,是,"2025-01-01",Active
+M0092,PART-MCU-STM32F427,STM32F427主控芯片,零件,颗,否,否,"2025-01-01",Active
+M0093,PART-PCB-FC-4L,"4层飞控PCB板",零件,块,否,否,"2025-01-01",Active
+M0094,PART-CRYSTAL-8M,"8MHz晶振",零件,颗,否,否,"2025-01-01",Active
+M0095,PART-CRYSTAL-32K,"32.768KHz晶振",零件,颗,否,否,"2025-01-01",Active
+M0096,PART-POWER-REG-5V,"5V稳压芯片",零件,颗,否,否,"2025-01-01",Active
+M0097,PART-POWER-REG-3.3V,"3.3V稳压芯片",零件,颗,否,否,"2025-01-01",Active
+M0098,PART-CONN-DF13-6P,DF13 6PIN连接器,零件,个,否,否,"2025-01-01",Active
+M0099,PART-RES-SMD-0402,"0402贴片电阻",零件,颗,否,否,"2025-01-01",Active
+M0100,PART-CAP-SMD-0402,"0402贴片电容",零件,颗,否,否,"2025-01-01",Active
+M0101,PART-MCU-STM32H743,STM32H743高性能芯片,零件,颗,否,否,"2025-01-01",Active
+M0102,PART-PCB-FC-6L,"6层飞控PCB板",零件,块,否,否,"2025-01-01",Active
+M0103,PART-CRYSTAL-25M,"25MHz晶振",零件,颗,否,否,"2025-01-01",Active
+M0104,PART-POWER-REG-5V-3A,"5V 3A稳压模块",零件,颗,否,否,"2025-01-01",Active
+M0105,PART-CONN-GH-1.25-6P,GH1.25 6PIN连接器,零件,个,否,否,"2025-01-01",Active
+M0106,PART-RES-SMD-0201,"0201贴片电阻",零件,颗,否,否,"2025-01-01",Active
+M0107,PART-CAP-SMD-0201,"0201贴片电容",零件,颗,否,否,"2025-01-01",Active
+M0108,PART-MCU-STM32H753,STM32H753双核芯片,零件,颗,否,否,"2025-01-01",Active
+M0109,PART-PCB-FC-8L,"8层飞控PCB板",零件,块,否,否,"2025-01-01",Active
+M0110,PART-FPGA-ICE40,ICE40 FPGA,零件,颗,否,否,"2025-01-01",Active
+M0111,PART-CONN-GH-1.25-10P,GH1.25 10PIN连接器,零件,个,否,否,"2025-01-01",Active
+M0112,RAW-ABS-PELLET,ABS塑料粒子,原材料,千克,否,否,"2025-01-01",Active
+M0113,RAW-CF-PLATE-3MM,"3mm碳纤维板",原材料,平米,否,否,"2025-01-01",Active
+M0114,PART-SCREW-M2.5-8,M2.5x8螺钉,零件,颗,否,否,"2025-01-01",Active
+M0115,RAW-CF-TUBE-16MM,"16mm碳纤维管",原材料,米,否,否,"2025-01-01",Active
+M0116,PART-PCB-2L,"2层PCB板",零件,块,否,否,"2025-01-01",Active
+M0117,PART-MOSFET-DUAL,双路MOSFET,零件,颗,否,否,"2025-01-01",Active
+M0118,PART-MCU-STM32F103,STM32F103控制芯片,零件,颗,否,否,"2025-01-01",Active
+M0119,RAW-SI-WAFER-8IN,"8英寸硅晶圆",原材料,片,否,否,"2025-01-01",Active
+M0120,RAW-SI-WAFER-12IN,"12英寸硅晶圆",原材料,片,否,否,"2025-01-01",Active
+M0121,RAW-NEODYMIUM,钕铁硼磁性材料,原材料,千克,否,否,"2025-01-01",Active
+M0122,RAW-COPPER-WIRE,铜漆包线,原材料,千克,否,否,"2025-01-01",Active
+M0123,RAW-AL-ALLOY,铝合金材料,原材料,千克,否,否,"2025-01-01",Active
+M0124,RAW-LIPO-CELL,锂聚合物电芯,原材料,千克,否,否,"2025-01-01",Active
+M0125,RAW-FR4-CCL,FR4覆铜板,原材料,平米,否,否,"2025-01-01",Active
+M0126,PART-BAT-2S-3200,高容量智能电池2S3200mAh,组件,块,否,否,"2025-01-01",Active
+M0127,PART-CAM-FIX-12MP-B,"1200万像素固定相机B版",组件,个,否,否,"2025-01-01",Active

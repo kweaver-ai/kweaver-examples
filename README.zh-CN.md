@@ -8,7 +8,7 @@
 
 | 案例 | 说明 |
 |------|------|
-| [`supply_chain/`](supply_chain/) | 供应链业务知识网络（BKN）、决策智能体、数据流、工具箱与 MySQL 种子 SQL |
+| [`supply_chain/`](supply_chain/) | 供应链 BKN、决策智能体、数据流、工具箱与 MySQL 示例数据 — 说明见 [`README.zh-CN.md`](supply_chain/README.zh-CN.md) |
 
 新增案例时，按相同约定建目录即可：`data_source/`、`bkn/`、`agents/`、`dataflow/`、`tools/`（均为可选）。
 

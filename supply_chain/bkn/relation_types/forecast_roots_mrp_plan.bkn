@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r2s3q8ofn0ex12
+name: 预测单关联MRP需求
+tags: []
+---
+
+## RelationType: 预测单关联MRP需求
+
+预测单号与 MRP 根需求单号一致：`mrp.rootdemandbillno = forecast.billno`。同一预测单下多行预测、多行 MRP 通过 billno 形成一对多/多对多关联，支撑大预测单多产品监测。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx001s3q8ofn0ex01 | d50nx002s3q8ofn0ex02 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| billno | rootdemandbillno |

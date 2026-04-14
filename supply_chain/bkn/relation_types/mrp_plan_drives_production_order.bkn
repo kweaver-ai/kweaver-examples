@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r5s3q8ofn0ex15
+name: MRP关联生产工单
+tags: []
+---
+
+## RelationType: MRP关联生产工单
+
+自制件生产链：`materialattr_title = 自制` 的 MRP 行通过 `billno` 与生产工单 `sourcebillnumber` 关联（对齐 PRD 中 MPS 语义，本网络对象名为产品生产单）。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx002s3q8ofn0ex02 | d50n6635s3q8ofn0dvk0 | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| billno | sourcebillnumber |

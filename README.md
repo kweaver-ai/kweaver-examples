@@ -9,7 +9,7 @@ Example **cases** for the KWeaver platform: assets you can push with the `kweave
 
 | Case                             | Description                                                    |
 | -------------------------------- | -------------------------------------------------------------- |
-| `[supply_chain/](supply_chain/)` | Supply-chain BKN, agent, dataflow, toolbox, and MySQL seed SQL |
+| [`supply_chain/`](supply_chain/) | Supply-chain BKN, agent, dataflow, toolbox, and MySQL seed data — see [`supply_chain/README.md`](supply_chain/README.md) |
 
 
 Add a new case by creating a directory with the same conventions (`data_source/`, `bkn/`, `agents/`, `dataflow/`, `tools/` — each optional).

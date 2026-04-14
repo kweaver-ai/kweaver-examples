@@ -1,0 +1,22 @@
+---
+type: relation_type
+id: d50nx0r1s3q8ofn0ex11
+name: 预测行关联产品
+tags: []
+---
+
+## RelationType: 预测行关联产品
+
+需求预测行上的产品编码与产品主数据关联，支撑按产品展开 BOM 与齐套监测。
+
+### Endpoint
+
+| Source | Target | Type |
+|--------|--------|------|
+| d50nx001s3q8ofn0ex01 | d50jqrr5s3q8ofn0dscg | direct |
+
+### Mapping Rules
+
+| Source Property | Target Property |
+|-----------------|-----------------|
+| material_number | product_code |
