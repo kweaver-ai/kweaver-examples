@@ -42,7 +42,9 @@ Options:
   --agent-bind-kn        After imports: kweaver agent update --knowledge-network-id (matches network.bkn name + agent key)
   --agent-publish        After --agent-bind-kn (and optional LLM): kweaver agent publish
   --llm-id ID            Set default LLM id in imported agent config (see model manager)
-  --auto-llm             Pick first LLM from GET /api/mf-model-manager/v1/llm/list (implies agent config update)
+  --embedding-id ID      Small / embedding model id for knowledge-network indexing (see model manager)
+  --pick-models          Query models via kweaver, then interactively choose 大模型 + 小模型 (use with -y and --llm-id + --embedding-id for CI)
+  --auto-llm             Pick first LLM from GET /api/mf-model-manager/v1/llm/list (ignored if --pick-models)
   --retries N            Retry transient API/kweaver failures (default: 3; use 1 to disable backoff)
   --retry-delay SEC      Seconds between retries (default: 8)
 
@@ -84,7 +86,9 @@ DATASOURCE_ID="${KWEAVER_DATASOURCE_ID:-}"
 AGENT_BIND_KN=false
 AGENT_PUBLISH=false
 AUTO_LLM=false
+PICK_MODELS=false
 LLM_ID=""
+EMBEDDING_ID=""
 BKN_STAGING=false
 STRICT_DATAVIEWS=false
 RETRIES=3
@@ -114,6 +118,8 @@ while [[ $# -gt 0 ]]; do
     --agent-bind-kn) AGENT_BIND_KN=true; shift ;;
     --agent-publish) AGENT_PUBLISH=true; shift ;;
     --llm-id) LLM_ID="${2:-}"; shift 2 ;;
+    --embedding-id) EMBEDDING_ID="${2:-}"; shift 2 ;;
+    --pick-models) PICK_MODELS=true; shift ;;
     --auto-llm) AUTO_LLM=true; shift ;;
     --bkn-staging) BKN_STAGING=true; shift ;;
     --retries) RETRIES="${2:-3}"; shift 2 ;;
@@ -140,8 +146,8 @@ if [[ "$SYNC_DATAVIEWS" == true ]] && [[ -n "$DATASOURCE_ID" ]]; then
   fi
 fi
 
-# jq is required for dataview sync and post-config (agent id / KN / LLM).
-if [[ "$SYNC_DATAVIEWS" == true ]] || [[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || -n "$LLM_ID" ]]; then
+# jq is required for dataview sync and post-config (agent id / KN / LLM / embedding).
+if [[ "$SYNC_DATAVIEWS" == true ]] || [[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || "$PICK_MODELS" == true || -n "$LLM_ID" || -n "$EMBEDDING_ID" ]]; then
   command -v jq >/dev/null 2>&1 || {
     echo -e "${RED}This run needs jq (brew install jq).${NC}" >&2
     exit 1
@@ -149,6 +155,15 @@ if [[ "$SYNC_DATAVIEWS" == true ]] || [[ "$AGENT_BIND_KN" == true || "$AGENT_PUB
 fi
 if [[ "$AGENT_PUBLISH" == true ]] && [[ "$AGENT_BIND_KN" != true ]]; then
   echo -e "${YELLOW}Note: --agent-publish without --agent-bind-kn — ensure the agent already has the correct knowledge network in Studio.${NC}" >&2
+fi
+if [[ "$PICK_MODELS" == true ]] && [[ "$AUTO_LLM" == true ]]; then
+  echo -e "${YELLOW}Note: --pick-models supersedes --auto-llm for default LLM selection.${NC}" >&2
+fi
+if [[ "$PICK_MODELS" == true ]] && [[ "$YES" == true ]]; then
+  if [[ -z "$LLM_ID" || -z "$EMBEDDING_ID" ]]; then
+    echo -e "${RED}--pick-models with -y requires both --llm-id and --embedding-id (non-interactive).${NC}" >&2
+    exit 2
+  fi
 fi
 
 # Self-signed HTTPS: kweaver (Node) needs this; curl uses -k via curl_api.
@@ -615,12 +630,14 @@ fi
 
 # --- post-config: bind agent to KN, set default LLM, publish (optional) ---
 POST_CFG=false
-[[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || -n "$LLM_ID" ]] && POST_CFG=true
+[[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || "$PICK_MODELS" == true || -n "$LLM_ID" || -n "$EMBEDDING_ID" ]] && POST_CFG=true
 
 if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" == true ]]; then
   run_title "Post-config (dry-run)"
   [[ "$AGENT_BIND_KN" == true ]] && echo "  (dry-run) $SCRIPT_DIR/scripts/agent_bind_kn.sh $CASE_DIR"
-  [[ "$AUTO_LLM" == true || -n "$LLM_ID" ]] && echo "  (dry-run) kweaver call .../llm/list + scripts/agent_set_llm.sh (if LLM resolved)"
+  [[ "$PICK_MODELS" == true ]] && echo "  (dry-run) scripts/select_models.sh (interactive) or use --llm-id + --embedding-id with -y"
+  [[ "$PICK_MODELS" != true ]] && [[ "$AUTO_LLM" == true || -n "$LLM_ID" ]] && echo "  (dry-run) kweaver call .../llm/list + scripts/agent_set_llm.sh (if LLM resolved)"
+  [[ -n "$EMBEDDING_ID" ]] && echo "  (dry-run) scripts/kn_set_embedding.sh <kn_id> $EMBEDDING_ID (after KN id resolved)"
   [[ "$AGENT_PUBLISH" == true ]] && echo "  (dry-run) kweaver agent publish <agent_id>"
 fi
 
@@ -676,41 +693,75 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     exit 1
   fi
 
-  if [[ "$AGENT_BIND_KN" == true ]]; then
-    if [[ ! -f "$CASE_DIR/bkn/network.bkn" ]]; then
-      echo -e "${RED}--agent-bind-kn requires $CASE_DIR/bkn/network.bkn${NC}" >&2
-      exit 1
-    fi
+  KN_ID=""
+  KN_NAME=""
+  if [[ -f "$CASE_DIR/bkn/network.bkn" ]]; then
     KN_NAME="$(awk '/^name:/{sub(/^name:[[:space:]]+/,""); print; exit}' "$CASE_DIR/bkn/network.bkn" | tr -d '\r')"
+  fi
+
+  resolve_kn_id_from_platform() {
     if [[ -z "$KN_NAME" ]]; then
-      echo -e "${RED}Could not read knowledge network name from network.bkn${NC}" >&2
-      exit 1
+      echo -e "${RED}Missing knowledge network name in bkn/network.bkn (name:).${NC}" >&2
+      return 1
     fi
     LIST_OUT="$(mktemp)"
     LIST_ERR="$(mktemp)"
     if ! kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty >"$LIST_OUT" 2>"$LIST_ERR"; then
       echo -e "${RED}kweaver bkn list failed${NC}" >&2
       [[ -s "$LIST_ERR" ]] && cat "$LIST_ERR" >&2
-      exit 1
+      rm -f "$LIST_OUT" "$LIST_ERR"
+      return 1
     fi
     if [[ ! -s "$LIST_OUT" ]] || ! jq -e . >/dev/null 2>&1 "$LIST_OUT"; then
       echo -e "${RED}kweaver bkn list returned empty or invalid JSON${NC}" >&2
-      exit 1
+      rm -f "$LIST_OUT" "$LIST_ERR"
+      return 1
     fi
     KN_ID="$(jq -r --arg n "$KN_NAME" '
       (if type == "array" then . else (.entries // .data // []) end)
       | map(select(.name == $n)) | .[0].id // empty
     ' "$LIST_OUT")"
+    rm -f "$LIST_OUT" "$LIST_ERR"
     if [[ -z "$KN_ID" ]]; then
       echo -e "${RED}Could not find knowledge network named exactly: $KN_NAME (push BKN first).${NC}" >&2
+      return 1
+    fi
+    return 0
+  }
+
+  if [[ "$AGENT_BIND_KN" == true ]]; then
+    if [[ ! -f "$CASE_DIR/bkn/network.bkn" ]]; then
+      echo -e "${RED}--agent-bind-kn requires $CASE_DIR/bkn/network.bkn${NC}" >&2
       exit 1
     fi
+    if [[ -z "$KN_NAME" ]]; then
+      echo -e "${RED}Could not read knowledge network name from network.bkn${NC}" >&2
+      exit 1
+    fi
+    resolve_kn_id_from_platform || exit 1
     echo "Binding agent $AGENT_ID to knowledge network $KN_ID ($KN_NAME) ..."
     kweaver_retry "Agent bind KN" kweaver agent update "$AGENT_ID" --knowledge-network-id "$KN_ID" || exit 1
     echo -e "${GREEN}  Knowledge network bound.${NC}"
   fi
+
   RESOLVED_LLM_ID="$LLM_ID"
-  if [[ "$AUTO_LLM" == true ]]; then
+  RESOLVED_EMBEDDING_ID="$EMBEDDING_ID"
+  SELECTED_LLM_ID=""
+  SELECTED_EMBEDDING_ID=""
+
+  if [[ "$PICK_MODELS" == true ]]; then
+    if [[ "$YES" == true ]]; then
+      RESOLVED_LLM_ID="$LLM_ID"
+      RESOLVED_EMBEDDING_ID="$EMBEDDING_ID"
+    else
+      echo -e "${YELLOW}  Querying models (kweaver call .../llm/list); choose 大模型 and 小模型:${NC}" >&2
+      eval "$(bash "$SCRIPT_DIR/scripts/select_models.sh")"
+      RESOLVED_LLM_ID="${SELECTED_LLM_ID:-}"
+      RESOLVED_EMBEDDING_ID="${SELECTED_EMBEDDING_ID:-}"
+    fi
+  fi
+
+  if [[ "$PICK_MODELS" != true ]] && [[ "$AUTO_LLM" == true ]] && [[ -z "$LLM_ID" ]]; then
     LLM_TMP="$(mktemp)"
     LLM_ERR="$(mktemp)"
     if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$LLM_TMP" 2>"$LLM_ERR"; then
@@ -732,9 +783,24 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
       echo -e "${YELLOW}  --auto-llm: kweaver call llm list failed; skip.${NC}" >&2
       [[ -s "$LLM_ERR" ]] && cat "$LLM_ERR" >&2
     fi
+    rm -f "$LLM_TMP" "$LLM_ERR"
   fi
+
+  if [[ -n "$RESOLVED_EMBEDDING_ID" ]] && [[ -z "$KN_ID" ]] && [[ -n "$KN_NAME" ]]; then
+    echo "Resolving knowledge network id for embedding model (name: $KN_NAME) ..."
+    resolve_kn_id_from_platform || exit 1
+  fi
+
   if [[ -n "$RESOLVED_LLM_ID" ]]; then
     bash "$SCRIPT_DIR/scripts/agent_set_llm.sh" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
+  fi
+  if [[ -n "$RESOLVED_EMBEDDING_ID" ]]; then
+    if [[ -n "$KN_ID" ]]; then
+      bash "$SCRIPT_DIR/scripts/kn_set_embedding.sh" "$KN_ID" "$RESOLVED_EMBEDDING_ID" || true
+    else
+      echo -e "${YELLOW}  Skipping embedding model on KN: no knowledge network id (need bkn/network.bkn + pushed KN).${NC}" >&2
+      echo -e "${YELLOW}  Selected embedding model id: $RESOLVED_EMBEDDING_ID — configure in Studio if needed.${NC}" >&2
+    fi
   fi
   if [[ "$AGENT_PUBLISH" == true ]]; then
     kweaver_retry "Agent publish" kweaver agent publish "$AGENT_ID" || exit 1

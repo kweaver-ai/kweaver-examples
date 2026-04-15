@@ -62,6 +62,7 @@ chmod +x bootstrap.sh   # 仅需一次
 - **数据视图（可自动化）：** 对象类型里使用占位符 `| data_view | {{DV:逻辑表名}} | 逻辑表名 |`。执行 bootstrap 时加 `--sync-dataviews --datasource-id <uuid>`，脚本会按表名解析原子视图 ID 并替换；加 `--bkn-staging` 则在临时目录打补丁并 push，**不改动仓库文件**。CI 场景可同时加 `--strict-dataviews`，任一视图解析失败则整次失败退出（默认仅告警并跳过未解析行）。
 - **Studio（可选）：** 若不用上述参数，再在 **Studio → BKN** 里手工绑定数据视图。
 - **决策智能体：** 可用 bootstrap 的 `--agent-bind-kn` / `--llm-id` / `--agent-publish`，或在平台里配置。
+- **大模型 / 小模型：** 使用 `--pick-models`，脚本会通过 `kweaver call …/llm/list` 拉取列表并**按序号交互选择**对话大模型与向量（嵌入）小模型。配合 `-y` 非交互时需同时指定 `--llm-id` 与 `--embedding-id`。小模型会尝试通过 `scripts/kn_set_embedding.sh` 写回知识网络；若平台 JSON 无对应字段，请按脚本提示在 Studio 中配置。
 
 ## 仅校验 BKN
 

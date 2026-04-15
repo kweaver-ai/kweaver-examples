@@ -62,6 +62,7 @@ Typical order:
 - **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <uuid>` resolves those names via `kweaver dataview find` and substitutes real UUIDs (use `--bkn-staging` to patch a temp copy so the repo stays unchanged). Use `--strict-dataviews` with `--sync-dataviews` in CI so any unresolved view fails the run instead of only warning.
 - **Studio (optional):** if you do not use the bootstrap flags above, bind object types to data views manually in **Studio → BKN**.
 - **Decision agent:** use bootstrap `--agent-bind-kn` / `--llm-id` / `--agent-publish`, or attach the knowledge network, models, and tools in agent settings.
+- **Models (大模型 / 小模型):** use `--pick-models` so the script calls `kweaver call …/llm/list`, prints numbered lists (chat LLM vs embedding), and you choose by index. With `-y` (non-interactive), pass both `--llm-id` and `--embedding-id`. The small model is applied to the knowledge network via `scripts/kn_set_embedding.sh` when the platform JSON exposes a known field; otherwise follow the script’s Studio hint.
 
 ## Validate BKN only
 
