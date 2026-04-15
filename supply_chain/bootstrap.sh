@@ -47,6 +47,9 @@ Options:
   --auto-llm             Pick first LLM from GET /api/mf-model-manager/v1/llm/list (ignored if --pick-models)
   --retries N            Retry transient API/kweaver failures (default: 3; use 1 to disable backoff)
   --retry-delay SEC      Seconds between retries (default: 8)
+  --skip-preflight       Skip scripts/preflight.sh (not recommended)
+  --ignore-state-deps    Allow --only <step> even if state file shows prerequisites missing
+  --rollback-last        Undo the last recorded reversible action (publish / bind / set_llm), then exit
 
 Prerequisites (see kweaver-core help):
   - CLI: npm i -g @kweaver-ai/kweaver-sdk (Node 22+)
@@ -63,6 +66,11 @@ Examples:
   ./bootstrap.sh -y -k --skip-data-source --datasource-id <ds-uuid> --sync-dataviews \\
       --bkn-staging --agent-bind-kn --auto-llm --agent-publish
   ./bootstrap.sh -y --ds-host db.internal --ds-db tem --ds-user root --ds-pass secret
+
+State / rollback:
+  Progress is recorded in .kweaver_bootstrap_state.json (step completion + rollback stack).
+  Reversible post-config actions (publish, bind KN, set LLM) can be undone one at a time:
+    ./bootstrap.sh --rollback-last
 EOF
 }
 
@@ -93,6 +101,9 @@ BKN_STAGING=false
 STRICT_DATAVIEWS=false
 RETRIES=3
 RETRY_DELAY_SEC=8
+SKIP_PREFLIGHT=false
+IGNORE_STATE_DEPS=false
+ROLLBACK_LAST=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -124,6 +135,9 @@ while [[ $# -gt 0 ]]; do
     --bkn-staging) BKN_STAGING=true; shift ;;
     --retries) RETRIES="${2:-3}"; shift 2 ;;
     --retry-delay) RETRY_DELAY_SEC="${2:-8}"; shift 2 ;;
+    --skip-preflight) SKIP_PREFLIGHT=true; shift ;;
+    --ignore-state-deps) IGNORE_STATE_DEPS=true; shift ;;
+    --rollback-last) ROLLBACK_LAST=true; shift ;;
     *) echo -e "${RED}Unknown option: $1${NC}" >&2; usage; exit 2 ;;
   esac
 done
@@ -166,6 +180,19 @@ if [[ "$PICK_MODELS" == true ]] && [[ "$YES" == true ]]; then
   fi
 fi
 
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/scripts/bootstrap_state.sh"
+
+POST_CFG_FLAGS=false
+[[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || "$PICK_MODELS" == true || -n "$LLM_ID" || -n "$EMBEDDING_ID" ]] && POST_CFG_FLAGS=true
+
+SESSION_DONE=""
+session_mark_done() { SESSION_DONE="$SESSION_DONE $1"; }
+session_is_done() {
+  local s="$1"
+  [[ " $SESSION_DONE " == *" $s "* ]]
+}
+
 # Self-signed HTTPS: kweaver (Node) needs this; curl uses -k via curl_api.
 if [[ "$CURL_INSECURE" == true ]]; then
   export NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -190,6 +217,25 @@ if [[ -z "$TOKEN" ]]; then
 fi
 if [[ "$TOKEN" == "__NO_AUTH__" ]]; then
   echo -e "${YELLOW}Note: CLI is in no-auth mode (kweaver auth login <url> --no-auth). APIs must allow unauthenticated access.${NC}" >&2
+fi
+
+if [[ "$ROLLBACK_LAST" == true ]]; then
+  command -v jq >/dev/null 2>&1 || { echo -e "${RED}jq required for rollback${NC}" >&2; exit 1; }
+  RB_ENT="$(rollback_pop)"
+  if [[ -z "$RB_ENT" ]] || [[ "$RB_ENT" == "null" ]] || ! echo "$RB_ENT" | jq -e '.op' >/dev/null 2>&1; then
+    echo -e "${YELLOW}Rollback stack is empty — nothing to undo.${NC}" >&2
+    exit 0
+  fi
+  echo -e "${YELLOW}--- Rollback (one step) ---${NC}"
+  rollback_execute_one "$RB_ENT" || exit 1
+  echo -e "${GREEN}Rollback finished.${NC}"
+  exit 0
+fi
+
+if [[ "$SKIP_PREFLIGHT" != true ]] && [[ "$DRY_RUN" != true ]]; then
+  PF_ARGS=("$CASE_DIR")
+  [[ "$POST_CFG_FLAGS" == true ]] && PF_ARGS+=("--require-models")
+  bash "$SCRIPT_DIR/scripts/preflight.sh" "${PF_ARGS[@]}" || exit 1
 fi
 
 curl_api() {
@@ -472,12 +518,71 @@ else
   fi
 fi
 
+SELECTED_SORTED=()
+for a in "${AVAILABLE_STEPS[@]}"; do
+  for s in "${SELECTED_STEPS[@]}"; do
+    [[ "$s" == "$a" ]] && SELECTED_SORTED+=("$a")
+  done
+done
+if [[ ${#SELECTED_SORTED[@]} -gt 0 ]]; then
+  SELECTED_STEPS=("${SELECTED_SORTED[@]}")
+fi
+
 step_in_selected() {
   local s="$1"
   for x in "${SELECTED_STEPS[@]}"; do
     [[ "$x" == "$s" ]] && return 0
   done
   return 1
+}
+
+step_previous_in_available() {
+  local target="$1"
+  local prev=""
+  for s in "${AVAILABLE_STEPS[@]}"; do
+    [[ "$s" == "$target" ]] && { echo "$prev"; return 0; }
+    prev="$s"
+  done
+  echo ""
+}
+
+check_step_prerequisite() {
+  local step="$1"
+  [[ "$DRY_RUN" == true ]] && return 0
+  [[ "$IGNORE_STATE_DEPS" == true ]] && return 0
+  local prev
+  prev="$(step_previous_in_available "$step")"
+  [[ -z "$prev" ]] && return 0
+  if step_in_selected "$prev"; then
+    session_is_done "$prev" || {
+      echo -e "${RED}Prerequisite failed: '$step' requires '$prev' completed earlier in this run.${NC}" >&2
+      exit 1
+    }
+  else
+    state_completed_p "$prev" || {
+      echo -e "${RED}Prerequisite failed: '$step' requires completed '$prev' (see state: $(bootstrap_state_file)).${NC}" >&2
+      echo -e "${YELLOW}Run ./bootstrap.sh --only $prev first, or omit --only. Override: --ignore-state-deps${NC}" >&2
+      exit 1
+    }
+  fi
+}
+
+check_post_config_prereq() {
+  [[ "$DRY_RUN" == true ]] || [[ "$IGNORE_STATE_DEPS" == true ]] && return 0
+  local has_agents=false
+  compgen -G "$CASE_DIR/agents/"*.json >/dev/null 2>&1 && has_agents=true
+  if [[ "$has_agents" != true ]]; then
+    echo -e "${RED}Post-config requires agents/*.json${NC}" >&2
+    exit 1
+  fi
+  if step_in_selected "agents"; then
+    session_is_done "agents" || { echo -e "${RED}Post-config requires agents step to succeed first.${NC}" >&2; exit 1; }
+  else
+    state_completed_p "agents" || {
+      echo -e "${RED}Post-config requires agents import completed (e.g. ./bootstrap.sh --only agents).${NC}" >&2
+      exit 1
+    }
+  fi
 }
 
 run_title() {
@@ -488,6 +593,7 @@ SKIP_DS=false
 
 # --- data_source ---
 if should_run_step "data_source" && step_in_selected "data_source" && [[ -d "$CASE_DIR/data_source" ]]; then
+  check_step_prerequisite "data_source"
   if [[ "$YES" == true ]]; then
     if [[ -z "$DS_HOST" || -z "$DS_DB" || -z "$DS_USER" ]]; then
       echo -e "${RED}Non-interactive mode requires --ds-host, --ds-db, and --ds-user.${NC}" >&2
@@ -527,12 +633,15 @@ if should_run_step "data_source" && step_in_selected "data_source" && [[ -d "$CA
           --account "$DS_USER" --password "$DS_PASS" --name "$DS_NAME" || exit 1
       fi
       echo -e "${GREEN}  Data source step finished.${NC}"
+      session_mark_done "data_source"
+      state_mark_complete "data_source"
     fi
   fi
 fi
 
 # --- bkn ---
 if should_run_step "bkn" && step_in_selected "bkn" && [[ -f "$CASE_DIR/bkn/network.bkn" ]]; then
+  check_step_prerequisite "bkn"
   BKN_PUSH_ROOT="$CASE_DIR/bkn"
   BKN_STAGE=""
   if [[ "$BKN_STAGING" == true ]]; then
@@ -583,11 +692,14 @@ if should_run_step "bkn" && step_in_selected "bkn" && [[ -f "$CASE_DIR/bkn/netwo
     run_title "Push BKN"
     kweaver_retry "BKN push" kweaver bkn push "$BKN_PUSH_ROOT" || exit 1
     echo -e "${GREEN}  BKN push finished.${NC}"
+    session_mark_done "bkn"
+    state_mark_complete "bkn"
   fi
 fi
 
 # --- agents ---
 if should_run_step "agents" && step_in_selected "agents"; then
+  check_step_prerequisite "agents"
   shopt -s nullglob
   for f in "$CASE_DIR/agents/"*.json; do
     run_title "Import agent $(basename "$f")"
@@ -598,10 +710,15 @@ if should_run_step "agents" && step_in_selected "agents"; then
     fi
   done
   shopt -u nullglob
+  if [[ "$DRY_RUN" != true ]]; then
+    session_mark_done "agents"
+    state_mark_complete "agents"
+  fi
 fi
 
 # --- dataflow ---
 if should_run_step "dataflow" && step_in_selected "dataflow"; then
+  check_step_prerequisite "dataflow"
   shopt -s nullglob
   for f in "$CASE_DIR/dataflow/"*.json; do
     run_title "Import dataflow $(basename "$f")"
@@ -612,10 +729,15 @@ if should_run_step "dataflow" && step_in_selected "dataflow"; then
     fi
   done
   shopt -u nullglob
+  if [[ "$DRY_RUN" != true ]]; then
+    session_mark_done "dataflow"
+    state_mark_complete "dataflow"
+  fi
 fi
 
 # --- tools ---
 if should_run_step "tools" && step_in_selected "tools"; then
+  check_step_prerequisite "tools"
   shopt -s nullglob
   for f in "$CASE_DIR/tools/"*.adp; do
     run_title "Import toolbox $(basename "$f")"
@@ -626,6 +748,10 @@ if should_run_step "tools" && step_in_selected "tools"; then
     fi
   done
   shopt -u nullglob
+  if [[ "$DRY_RUN" != true ]]; then
+    session_mark_done "tools"
+    state_mark_complete "tools"
+  fi
 fi
 
 # --- post-config: bind agent to KN, set default LLM, publish (optional) ---
@@ -642,6 +768,7 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" == true ]]; then
 fi
 
 if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
+  check_post_config_prereq
   run_title "Post-config (agent / LLM / publish)"
   AGENT_JSON=""
   shopt -s nullglob
@@ -693,6 +820,8 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     exit 1
   fi
 
+  OLD_KN="$(jq -r '.knowledge_network_id // .knowledgeNetworkId // .knowledge_network // empty' "$AGENT_OUT")"
+
   KN_ID=""
   KN_NAME=""
   if [[ -f "$CASE_DIR/bkn/network.bkn" ]]; then
@@ -742,6 +871,7 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     echo "Binding agent $AGENT_ID to knowledge network $KN_ID ($KN_NAME) ..."
     kweaver_retry "Agent bind KN" kweaver agent update "$AGENT_ID" --knowledge-network-id "$KN_ID" || exit 1
     echo -e "${GREEN}  Knowledge network bound.${NC}"
+    rollback_push "$(jq -nc --arg id "$AGENT_ID" --arg pk "$OLD_KN" '{op:"agent_bind_kn",agent_id:$id,previous_knowledge_network_id:$pk}')"
   fi
 
   RESOLVED_LLM_ID="$LLM_ID"
@@ -792,7 +922,15 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
   fi
 
   if [[ -n "$RESOLVED_LLM_ID" ]]; then
+    mkdir -p "$(bootstrap_backup_dir)"
+    BKP_LLM="$(bootstrap_backup_dir)/agent_${AGENT_ID}_before_llm.json"
+    if ! kweaver agent get "$AGENT_ID" --pretty >"$BKP_LLM" 2>/dev/null || [[ ! -s "$BKP_LLM" ]]; then
+      echo -e "${YELLOW}  Could not snapshot agent config before LLM change — rollback for set_llm will not be available.${NC}" >&2
+    fi
     bash "$SCRIPT_DIR/scripts/agent_set_llm.sh" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
+    if [[ -s "$BKP_LLM" ]]; then
+      rollback_push "$(jq -nc --arg id "$AGENT_ID" --arg p "$BKP_LLM" '{op:"agent_set_llm",agent_id:$id,backup_path:$p}')"
+    fi
   fi
   if [[ -n "$RESOLVED_EMBEDDING_ID" ]]; then
     if [[ -n "$KN_ID" ]]; then
@@ -805,7 +943,10 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
   if [[ "$AGENT_PUBLISH" == true ]]; then
     kweaver_retry "Agent publish" kweaver agent publish "$AGENT_ID" || exit 1
     echo -e "${GREEN}  Agent published.${NC}"
+    rollback_push "$(jq -nc --arg id "$AGENT_ID" '{op:"agent_publish",agent_id:$id}')"
   fi
+  session_mark_done "post_config"
+  state_mark_complete "post_config"
   cleanup_post_tmp
   trap - EXIT
   if [[ -n "${BKN_STAGE:-}" ]]; then

@@ -1,3 +1,7 @@
 .DS_Store
 __pycache__/
 *.py[cod]
+
+# supply_chain bootstrap state / agent config backups
+supply_chain/.kweaver_bootstrap_state.json
+supply_chain/.bootstrap_backup/

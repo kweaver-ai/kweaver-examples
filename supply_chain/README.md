@@ -50,6 +50,12 @@ chmod +x bootstrap.sh   # once
 
 This script lives in this directory and **only** drives this case. It is **interactive by default** (English prompts). For automation use `-y` and the `--ds-*` flags; see `./bootstrap.sh --help`. Helper scripts are under `scripts/` in this directory.
 
+**Preflight:** before mutating the platform, `bootstrap.sh` runs `scripts/preflight.sh` (Node/kweaver/curl, auth token, and at least one chat + one embedding model when post-config needs models). Use `--skip-preflight` only in exceptional cases.
+
+**Step order / state:** steps run in resource order (`data_source` → `bkn` → `agents` → …). If you use `--only agents` (or similar), the script checks that earlier steps completed in a **previous** run (see `.kweaver_bootstrap_state.json`). Override with `--ignore-state-deps` if you know what you are doing.
+
+**Rollback:** after post-config, reversible actions are pushed to a stack (`publish` → unpublish, `bind_kn` → restore previous KN id, `set_llm` → restore config from `.bootstrap_backup/`). Run `./bootstrap.sh --rollback-last` to undo the **last** recorded action. BKN push and imports are not auto-reverted (delete resources in Studio if needed).
+
 Typical order:
 
 1. Load `import_data.sql` into MySQL.
