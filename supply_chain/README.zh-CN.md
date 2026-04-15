@@ -50,6 +50,12 @@ chmod +x bootstrap.sh   # 仅需一次
 
 默认**交互式**（英文提示）。自动化可使用 `-y` 与 `--ds-*` 参数，详见 `./bootstrap.sh --help`。
 
+**环境预检：** 执行前会运行 `scripts/preflight.sh`（检查 Node/kweaver/curl、登录 token；若本次会做 post-config 模型相关操作，则要求平台上至少各有一条「对话类」与「嵌入类」模型）。一般勿用 `--skip-preflight`。
+
+**步骤依赖 / 状态：** 若使用 `--only` 只跑某一步，脚本会检查**更早的步骤**是否已在**上一次成功运行**中完成（见目录下 `.kweaver_bootstrap_state.json`）。确需跳过检查可用 `--ignore-state-deps`。
+
+**回退：** post-config 中可逆操作（发布、绑定 KN、修改默认 LLM）会写入回退栈；执行 `./bootstrap.sh --rollback-last` 可**撤销上一次记录的操作**。BKN push 与各类 import 不会自动删除，需在平台侧自行处理。
+
 建议顺序：
 
 1. 将 `import_data.sql` 导入 MySQL。
