@@ -52,5 +52,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | 9ee1c35d-07a3-45a5-8701-70f0b8b6f9c4 | shipment_event |
+| data_view | {{DV:shipment_event}} | shipment_event |
 

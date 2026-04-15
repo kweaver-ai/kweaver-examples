@@ -46,5 +46,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | b7983bc0-060f-4a21-87ba-a289be389d63 | material_requisition_event |
+| data_view | {{DV:material_requisition_event}} | material_requisition_event |
 

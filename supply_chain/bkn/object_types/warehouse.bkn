@@ -70,5 +70,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | baa8df11-da0a-4df6-848e-a6e0b5a2ed29 | warehouse_entity |
+| data_view | {{DV:warehouse_entity}} | warehouse_entity |
 

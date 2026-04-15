@@ -48,5 +48,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | 0466d5e8-0a82-4359-b5af-2badf3c37015 | customer_entity |
+| data_view | {{DV:customer_entity}} | customer_entity |
 

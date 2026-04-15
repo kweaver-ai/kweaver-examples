@@ -48,5 +48,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | aa36d6dc-e9f3-4a87-b8bb-c987590fb901 | supplier_entity |
+| data_view | {{DV:supplier_entity}} | supplier_entity |
 

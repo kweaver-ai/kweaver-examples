@@ -33,5 +33,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | 81d60443-ca6e-49c2-b377-4b89b7752cd4 | product_entity |
+| data_view | {{DV:product_entity}} | product_entity |
 

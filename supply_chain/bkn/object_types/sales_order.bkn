@@ -57,5 +57,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | 4ea237f1-6c09-41a2-9baf-9906283066cc | sales_order_event |
+| data_view | {{DV:sales_order_event}} | sales_order_event |
 

@@ -54,5 +54,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | 48ce5a0d-e717-4786-a319-1aa619060bc0 | bom_event |
+| data_view | {{DV:bom_event}} | bom_event |
 

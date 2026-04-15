@@ -1,0 +1,664 @@
+#!/usr/bin/env bash
+# Supply-chain case: push BKN, import agent/dataflow/tools, optional data source — this directory is the case root.
+# Prerequisite: kweaver CLI installed and `kweaver auth login <url>` completed (-k if self-signed; --no-auth if no OAuth).
+# Product docs: https://github.com/kweaver-ai/kweaver-core/tree/main/help (quick-start, datasource, bkn, decision-agent, model)
+# Run from this directory: cd supply_chain && ./bootstrap.sh [options]
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CASE_DIR="$SCRIPT_DIR"
+CASE_NAME="$(basename "$CASE_DIR")"
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+usage() {
+  cat <<'EOF'
+Usage: ./bootstrap.sh [options]
+
+Run this script from the supply_chain directory (it always uses this directory as the case root).
+
+Options:
+  --only STEPS           Comma-separated: data_source,bkn,agents,dataflow,tools
+  --dry-run              Print planned actions only
+  --yes, -y              Non-interactive (skip prompts; use --ds-* for data source)
+  --bd DOMAIN            x-business-domain header (default: bd_public or KWEAVER_BUSINESS_DOMAIN)
+  --ds-type TYPE         Database type for kweaver ds connect (default: mysql)
+  --ds-name NAME         Display name for the data source
+  --ds-host HOST
+  --ds-port PORT         (default: 3306 for mysql)
+  --ds-db DATABASE
+  --ds-user USER
+  --ds-pass PASS
+  --ds-schema SCHEMA     Optional (postgresql/oracle/...)
+  --insecure, -k         Skip TLS verify (curl -k; also NODE_TLS_REJECT_UNAUTHORIZED=0 for kweaver)
+  --skip-data-source     Skip data_source step (e.g. datasource already connected on the platform)
+  --skip-bkn-validate    Skip "kweaver bkn validate" before push (not recommended)
+  --sync-dataviews       Before bkn validate/push: patch object_types/*.bkn data_view UUIDs from the platform
+  --datasource-id ID     Datasource UUID for --sync-dataviews (or env KWEAVER_DATASOURCE_ID)
+  --bkn-staging          Copy bkn/ to a temp dir, patch/push there (repo unchanged; pairs well with --sync-dataviews)
+  --agent-bind-kn        After imports: kweaver agent update --knowledge-network-id (matches network.bkn name + agent key)
+  --agent-publish        After --agent-bind-kn (and optional LLM): kweaver agent publish
+  --llm-id ID            Set default LLM id in imported agent config (see model manager)
+  --auto-llm             Pick first LLM from GET /api/mf-model-manager/v1/llm/list (implies agent config update)
+  --retries N            Retry transient API/kweaver failures (default: 3; use 1 to disable backoff)
+  --retry-delay SEC      Seconds between retries (default: 8)
+
+Prerequisites (see kweaver-core help):
+  - CLI: npm i -g @kweaver-ai/kweaver-sdk (Node 22+)
+  - Auth: kweaver auth login <platform-url>  (add -k for self-signed HTTPS)
+  - No-OAuth deployments: kweaver auth login <url> --no-auth
+  - Business domain: use --bd or KWEAVER_BUSINESS_DOMAIN; minimal installs may not support
+    kweaver config list-bd / set-bd (404 is expected — rely on config show)
+
+Examples:
+  ./bootstrap.sh
+  ./bootstrap.sh --only bkn,agents
+  ./bootstrap.sh -y -k --skip-data-source
+  ./bootstrap.sh -y -k --skip-data-source --datasource-id <ds-uuid> --sync-dataviews \\
+      --bkn-staging --agent-bind-kn --auto-llm --agent-publish
+  ./bootstrap.sh -y --ds-host db.internal --ds-db tem --ds-user root --ds-pass secret
+EOF
+}
+
+YES=false
+DRY_RUN=false
+ONLY_RAW=""
+BD="${KWEAVER_BUSINESS_DOMAIN:-bd_public}"
+DS_TYPE="mysql"
+DS_NAME=""
+DS_HOST=""
+DS_PORT=""
+DS_DB=""
+DS_USER=""
+DS_PASS=""
+DS_SCHEMA=""
+CURL_INSECURE=false
+SKIP_DATA_SOURCE=false
+SKIP_BKN_VALIDATE=false
+SYNC_DATAVIEWS=false
+DATASOURCE_ID="${KWEAVER_DATASOURCE_ID:-}"
+AGENT_BIND_KN=false
+AGENT_PUBLISH=false
+AUTO_LLM=false
+LLM_ID=""
+BKN_STAGING=false
+RETRIES=3
+RETRY_DELAY_SEC=8
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --only) ONLY_RAW="${2:-}"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --yes|-y) YES=true; shift ;;
+    --bd) BD="${2:-}"; shift 2 ;;
+    --ds-type) DS_TYPE="${2:-}"; shift 2 ;;
+    --ds-name) DS_NAME="${2:-}"; shift 2 ;;
+    --ds-host) DS_HOST="${2:-}"; shift 2 ;;
+    --ds-port) DS_PORT="${2:-}"; shift 2 ;;
+    --ds-db) DS_DB="${2:-}"; shift 2 ;;
+    --ds-user) DS_USER="${2:-}"; shift 2 ;;
+    --ds-pass) DS_PASS="${2:-}"; shift 2 ;;
+    --ds-schema) DS_SCHEMA="${2:-}"; shift 2 ;;
+    --insecure|-k) CURL_INSECURE=true; shift ;;
+    --skip-data-source) SKIP_DATA_SOURCE=true; shift ;;
+    --skip-bkn-validate) SKIP_BKN_VALIDATE=true; shift ;;
+    --sync-dataviews) SYNC_DATAVIEWS=true; shift ;;
+    --datasource-id) DATASOURCE_ID="${2:-}"; shift 2 ;;
+    --agent-bind-kn) AGENT_BIND_KN=true; shift ;;
+    --agent-publish) AGENT_PUBLISH=true; shift ;;
+    --llm-id) LLM_ID="${2:-}"; shift 2 ;;
+    --auto-llm) AUTO_LLM=true; shift ;;
+    --bkn-staging) BKN_STAGING=true; shift ;;
+    --retries) RETRIES="${2:-3}"; shift 2 ;;
+    --retry-delay) RETRY_DELAY_SEC="${2:-8}"; shift 2 ;;
+    *) echo -e "${RED}Unknown option: $1${NC}" >&2; usage; exit 2 ;;
+  esac
+done
+
+[[ "$RETRIES" =~ ^[0-9]+$ ]] && [[ "$RETRIES" -ge 1 ]] || { echo -e "${RED}--retries must be a positive integer${NC}" >&2; exit 2; }
+[[ "$RETRY_DELAY_SEC" =~ ^[0-9]+$ ]] || { echo -e "${RED}--retry-delay must be a non-negative integer${NC}" >&2; exit 2; }
+
+if [[ "$SYNC_DATAVIEWS" == true ]] && [[ -z "$DATASOURCE_ID" ]]; then
+  echo -e "${RED}--sync-dataviews requires --datasource-id or KWEAVER_DATASOURCE_ID${NC}" >&2
+  exit 2
+fi
+if [[ "$AGENT_PUBLISH" == true ]] && [[ "$AGENT_BIND_KN" != true ]]; then
+  echo -e "${YELLOW}Note: --agent-publish without --agent-bind-kn — ensure the agent already has the correct knowledge network in Studio.${NC}" >&2
+fi
+
+# Self-signed HTTPS: kweaver (Node) needs this; curl uses -k via curl_api.
+if [[ "$CURL_INSECURE" == true ]]; then
+  export NODE_TLS_REJECT_UNAUTHORIZED=0
+fi
+
+command -v kweaver >/dev/null 2>&1 || {
+  echo -e "${RED}kweaver CLI not found. Install: npm i -g @kweaver-ai/kweaver-sdk${NC}" >&2
+  exit 1
+}
+
+BASE_URL="$(kweaver config show 2>/dev/null | awk -F': +' '/^Platform:/ {print $2; exit}')"
+BASE_URL="${BASE_URL%/}"
+if [[ -z "$BASE_URL" ]]; then
+  echo -e "${RED}Could not read platform URL from kweaver config. Run: kweaver auth login <url>${NC}" >&2
+  exit 1
+fi
+
+TOKEN="$(kweaver token 2>/dev/null || true)"
+if [[ -z "$TOKEN" ]]; then
+  echo -e "${RED}No access token. Run: kweaver auth login <url>${NC}" >&2
+  exit 1
+fi
+if [[ "$TOKEN" == "__NO_AUTH__" ]]; then
+  echo -e "${YELLOW}Note: CLI is in no-auth mode (kweaver auth login <url> --no-auth). APIs must allow unauthenticated access.${NC}" >&2
+fi
+
+curl_api() {
+  local args=(-sS -X "$1" "${BASE_URL}$2" -H "Authorization: Bearer ${TOKEN}" -H "x-business-domain: ${BD}")
+  [[ "$CURL_INSECURE" == true ]] && args=(-k "${args[@]}")
+  shift 2
+  curl "${args[@]}" "$@"
+}
+
+# Set by curl_post_capture: HTTP status and response body (JSON or HTML).
+LAST_HTTP_CODE=""
+LAST_HTTP_BODY=""
+
+transient_http() {
+  [[ "$1" == "502" || "$1" == "503" || "$1" == "504" ]] && return 0
+  return 1
+}
+
+analyze_http_error() {
+  local code="$1"
+  local body="$2"
+  echo -e "${RED}  Analysis:${NC}" >&2
+  case "$code" in
+    401|403)
+      echo "  Auth or permission denied. Run: kweaver auth login <platform-url> (or check business domain: --bd / kweaver config set-bd)." >&2
+      ;;
+    404)
+      echo "  API not found — wrong platform URL or route." >&2
+      ;;
+    504|502|503)
+      echo "  Gateway/upstream timeout or overload. Confirm platform services; DB must be reachable from the server for ds connect." >&2
+      ;;
+    000|"")
+      echo "  Network or TLS failure. For self-signed HTTPS use: -k" >&2
+      ;;
+    *)
+      echo "  HTTP $code — see response snippet above." >&2
+      ;;
+  esac
+  if echo "$body" | grep -qi 'self-signed\|certificate\|SSL'; then
+    echo "  TLS: use ./bootstrap.sh ... -k so curl and kweaver skip verify." >&2
+  fi
+}
+
+# POST with body written to temp file; sets LAST_HTTP_CODE / LAST_HTTP_BODY.
+curl_post_capture() {
+  local path="$1"
+  shift
+  local tmp code
+  tmp="$(mktemp)"
+  local args=(-sS -X POST "${BASE_URL}${path}" -H "Authorization: Bearer ${TOKEN}" -H "x-business-domain: ${BD}")
+  [[ "$CURL_INSECURE" == true ]] && args=(-k "${args[@]}")
+  code=$(curl "${args[@]}" -o "$tmp" -w "%{http_code}" "$@") || code="000"
+  LAST_HTTP_BODY="$(cat "$tmp")"
+  LAST_HTTP_CODE="$code"
+  rm -f "$tmp"
+}
+
+import_agent_with_retry() {
+  local f="$1"
+  local attempt=1
+  while [[ $attempt -le $RETRIES ]]; do
+    curl_post_capture "/api/agent-factory/v3/agent-inout/import" \
+      -F "file=@${f};type=application/json" \
+      -F "import_type=create"
+    if [[ "$LAST_HTTP_CODE" =~ ^2 ]]; then
+      echo "$LAST_HTTP_BODY" | head -c 600
+      echo ""
+      if echo "$LAST_HTTP_BODY" | grep -q '"is_success"[[:space:]]*:[[:space:]]*true'; then
+        echo -e "${GREEN}  Agent import OK (is_success=true).${NC}"
+        return 0
+      fi
+      # Idempotent: same agent already exists (create import returns conflict, not an error).
+      if echo "$LAST_HTTP_BODY" | grep -q 'agent_key_conflict'; then
+        echo -e "${YELLOW}  Agent already exists (agent_key_conflict); treating as success.${NC}"
+        return 0
+      fi
+      echo -e "${RED}  HTTP $LAST_HTTP_CODE but is_success is not true:${NC}" >&2
+      echo "$LAST_HTTP_BODY" >&2
+      return 1
+    fi
+    echo -e "${YELLOW}  HTTP $LAST_HTTP_CODE${NC}" >&2
+    echo "$LAST_HTTP_BODY" | head -c 600 >&2
+    echo "" >&2
+    if transient_http "$LAST_HTTP_CODE" && [[ $attempt -lt $RETRIES ]]; then
+      echo -e "${YELLOW}  Retrying agent import ($((attempt + 1))/$RETRIES) in ${RETRY_DELAY_SEC}s...${NC}" >&2
+      sleep "$RETRY_DELAY_SEC"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    analyze_http_error "$LAST_HTTP_CODE" "$LAST_HTTP_BODY"
+    return 1
+  done
+  return 1
+}
+
+import_dataflow_with_retry() {
+  local f="$1"
+  local attempt=1
+  while [[ $attempt -le $RETRIES ]]; do
+    curl_post_capture "/api/automation/v1/data-flow/flow" \
+      -H "Content-Type: application/json" \
+      --data-binary @"$f"
+    # Duplicate name may be HTTP 200 or 400 depending on platform version.
+    if echo "$LAST_HTTP_BODY" | grep -q 'DuplicatedName'; then
+      echo -e "${YELLOW}  Dataflow name already exists (DuplicatedName); treating as success.${NC}"
+      echo "$LAST_HTTP_BODY" | head -c 400
+      echo ""
+      return 0
+    fi
+    if [[ "$LAST_HTTP_CODE" =~ ^2 ]]; then
+      echo "$LAST_HTTP_BODY" | head -c 600
+      echo ""
+      echo -e "${GREEN}  Dataflow import OK.${NC}"
+      return 0
+    fi
+    echo -e "${YELLOW}  HTTP $LAST_HTTP_CODE${NC}" >&2
+    echo "$LAST_HTTP_BODY" | head -c 600 >&2
+    echo "" >&2
+    if transient_http "$LAST_HTTP_CODE" && [[ $attempt -lt $RETRIES ]]; then
+      echo -e "${YELLOW}  Retrying dataflow import ($((attempt + 1))/$RETRIES) in ${RETRY_DELAY_SEC}s...${NC}" >&2
+      sleep "$RETRY_DELAY_SEC"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    analyze_http_error "$LAST_HTTP_CODE" "$LAST_HTTP_BODY"
+    return 1
+  done
+  return 1
+}
+
+import_toolbox_with_retry() {
+  local f="$1"
+  local attempt=1
+  while [[ $attempt -le $RETRIES ]]; do
+    curl_post_capture "/api/agent-operator-integration/v1/impex/import/toolbox" \
+      -F "data=@${f}" \
+      -F "mode=upsert"
+    if [[ "$LAST_HTTP_CODE" =~ ^2 ]]; then
+      echo "$LAST_HTTP_BODY" | head -c 600
+      echo ""
+      echo -e "${GREEN}  Toolbox import OK (HTTP $LAST_HTTP_CODE).${NC}"
+      return 0
+    fi
+    echo -e "${YELLOW}  HTTP $LAST_HTTP_CODE${NC}" >&2
+    echo "$LAST_HTTP_BODY" | head -c 600 >&2
+    echo "" >&2
+    if transient_http "$LAST_HTTP_CODE" && [[ $attempt -lt $RETRIES ]]; then
+      echo -e "${YELLOW}  Retrying toolbox import ($((attempt + 1))/$RETRIES) in ${RETRY_DELAY_SEC}s...${NC}" >&2
+      sleep "$RETRY_DELAY_SEC"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    analyze_http_error "$LAST_HTTP_CODE" "$LAST_HTTP_BODY"
+    return 1
+  done
+  return 1
+}
+
+# Run kweaver and retry on failure (embeddings, transient backend).
+kweaver_retry() {
+  local desc="$1"
+  shift
+  local attempt=1 out
+  while [[ $attempt -le $RETRIES ]]; do
+    out="$(mktemp)"
+    if "$@" >"$out" 2>&1; then
+      cat "$out"
+      rm -f "$out"
+      return 0
+    fi
+    cat "$out" >&2
+    rm -f "$out"
+    if [[ $attempt -lt $RETRIES ]]; then
+      echo -e "${YELLOW}  ${desc} failed, retry $attempt/$RETRIES in ${RETRY_DELAY_SEC}s...${NC}" >&2
+      sleep "$RETRY_DELAY_SEC"
+    fi
+    attempt=$((attempt + 1))
+  done
+  echo -e "${RED}  ${desc} failed after $RETRIES attempts.${NC}" >&2
+  echo -e "${YELLOW}  If the log mentions OpenSearch, vector, or embedding batch size, fix the platform indexing/model service.${NC}" >&2
+  echo -e "${YELLOW}  For ds connect timeouts, ensure the DB accepts connections from the platform (not only localhost).${NC}" >&2
+  return 1
+}
+
+prompt() {
+  local msg="$1"
+  local default="${2:-}"
+  local val
+  if [[ "$YES" == true ]]; then
+    echo "${default}"
+    return
+  fi
+  if [[ -n "$default" ]]; then
+    read -r -p "  ${msg} [${default}] > " val || true
+    echo "${val:-$default}"
+  else
+    read -r -p "  ${msg} > " val || true
+    echo "$val"
+  fi
+}
+
+should_run_step() {
+  local step="$1"
+  [[ "$step" == "data_source" && "$SKIP_DATA_SOURCE" == true ]] && return 1
+  [[ -z "$ONLY_RAW" ]] && return 0
+  IFS=',' read -ra parts <<< "$ONLY_RAW"
+  for p in "${parts[@]}"; do
+    [[ "${p// /}" == "$step" ]] && return 0
+  done
+  return 1
+}
+
+declare -a AVAILABLE_STEPS=()
+[[ -d "$CASE_DIR/data_source" && "$SKIP_DATA_SOURCE" != true ]] && AVAILABLE_STEPS+=("data_source")
+[[ -f "$CASE_DIR/bkn/network.bkn" ]] && AVAILABLE_STEPS+=("bkn")
+compgen -G "$CASE_DIR/agents/"*.json >/dev/null 2>&1 && AVAILABLE_STEPS+=("agents")
+compgen -G "$CASE_DIR/dataflow/"*.json >/dev/null 2>&1 && AVAILABLE_STEPS+=("dataflow")
+compgen -G "$CASE_DIR/tools/"*.adp >/dev/null 2>&1 && AVAILABLE_STEPS+=("tools")
+
+if [[ ${#AVAILABLE_STEPS[@]} -eq 0 ]]; then
+  echo -e "${RED}No bootstrap resources found under $CASE_DIR${NC}" >&2
+  exit 1
+fi
+
+echo -e "${GREEN}=== KWeaver bootstrap: ${CASE_NAME} ===${NC}"
+echo ""
+echo "Discovered steps:"
+local_i=1
+for s in "${AVAILABLE_STEPS[@]}"; do
+  case "$s" in
+    data_source)
+      sql_n=0
+      if compgen -G "$CASE_DIR/data_source/"*.sql >/dev/null 2>&1; then
+        sql_n=$(ls -1 "$CASE_DIR/data_source/"*.sql 2>/dev/null | wc -l | tr -d ' ')
+      fi
+      echo "  [${local_i}] data_source  (${sql_n} .sql file(s); load manually before connect)"
+      ;;
+    bkn)
+      ot=$(find "$CASE_DIR/bkn/object_types" -name '*.bkn' 2>/dev/null | wc -l | tr -d ' ')
+      rt=$(find "$CASE_DIR/bkn/relation_types" -name '*.bkn' 2>/dev/null | wc -l | tr -d ' ')
+      cg=$(find "$CASE_DIR/bkn/concept_groups" -name '*.bkn' 2>/dev/null | wc -l | tr -d ' ')
+      echo "  [${local_i}] bkn          (${ot} object types, ${rt} relation types, ${cg} concept groups)"
+      ;;
+    agents)
+      echo "  [${local_i}] agents       ($(ls -1 "$CASE_DIR/agents/"*.json 2>/dev/null | xargs -I{} basename {} | tr '\n' ' '))"
+      ;;
+    dataflow)
+      echo "  [${local_i}] dataflow     ($(ls -1 "$CASE_DIR/dataflow/"*.json 2>/dev/null | xargs -I{} basename {} | tr '\n' ' '))"
+      ;;
+    tools)
+      echo "  [${local_i}] tools        ($(ls -1 "$CASE_DIR/tools/"*.adp 2>/dev/null | xargs -I{} basename {} | tr '\n' ' '))"
+      ;;
+  esac
+  local_i=$((local_i + 1))
+done
+echo ""
+
+SELECTED_STEPS=()
+if [[ -n "$ONLY_RAW" ]]; then
+  IFS=',' read -ra ONLY_ARR <<< "$ONLY_RAW"
+  for o in "${ONLY_ARR[@]}"; do
+    SELECTED_STEPS+=("${o// /}")
+  done
+elif [[ "$YES" == true ]]; then
+  SELECTED_STEPS=("${AVAILABLE_STEPS[@]}")
+else
+  sel="$(prompt "Which steps to run? (comma-separated numbers, or 'all')" "all")"
+  sel="${sel// /}"
+  if [[ "$sel" == "all" || -z "$sel" ]]; then
+    SELECTED_STEPS=("${AVAILABLE_STEPS[@]}")
+  else
+    IFS=',' read -ra nums <<< "$sel"
+    for n in "${nums[@]}"; do
+      idx=$((n))
+      if [[ $idx -ge 1 && $idx -le ${#AVAILABLE_STEPS[@]} ]]; then
+        SELECTED_STEPS+=("${AVAILABLE_STEPS[$((idx - 1))]}")
+      fi
+    done
+  fi
+fi
+
+step_in_selected() {
+  local s="$1"
+  for x in "${SELECTED_STEPS[@]}"; do
+    [[ "$x" == "$s" ]] && return 0
+  done
+  return 1
+}
+
+run_title() {
+  echo -e "${YELLOW}--- $1 ---${NC}"
+}
+
+SKIP_DS=false
+
+# --- data_source ---
+if should_run_step "data_source" && step_in_selected "data_source" && [[ -d "$CASE_DIR/data_source" ]]; then
+  if [[ "$YES" == true ]]; then
+    if [[ -z "$DS_HOST" || -z "$DS_DB" || -z "$DS_USER" ]]; then
+      echo -e "${RED}Non-interactive mode requires --ds-host, --ds-db, and --ds-user.${NC}" >&2
+      exit 1
+    fi
+  else
+    echo "Note: load any .sql under data_source/ into your database before connecting."
+    c="$(prompt "Create data source connection now? (y/n)" "y")"
+    cl="$(echo "$c" | tr '[:upper:]' '[:lower:]')"
+    if [[ ! "$cl" =~ ^y ]]; then
+      SKIP_DS=true
+      echo "Skipping data_source."
+    fi
+  fi
+  if [[ "$SKIP_DS" != true ]]; then
+    DS_HOST="${DS_HOST:-$(prompt "Host")}"
+    default_port="3306"
+    [[ "$DS_TYPE" == "postgresql" ]] && default_port="5432"
+    DS_PORT="${DS_PORT:-$(prompt "Port" "$default_port")}"
+    DS_DB="${DS_DB:-$(prompt "Database name")}"
+    DS_USER="${DS_USER:-$(prompt "Username")}"
+    if [[ "$YES" != true ]] && [[ -z "$DS_PASS" ]]; then
+      read -r -s -p "  Password > " DS_PASS || true
+      echo ""
+    fi
+    DS_NAME="${DS_NAME:-$(prompt "Data source display name" "$CASE_NAME")}"
+    run_title "Create data source"
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  (dry-run) kweaver ds connect $DS_TYPE $DS_HOST $DS_PORT $DS_DB --account $DS_USER --name $DS_NAME"
+    else
+      # With `set -u`, expanding an empty array (`schema_args[@]`) errors; branch instead.
+      if [[ -n "$DS_SCHEMA" ]]; then
+        kweaver_retry "Data source connect" kweaver ds connect "$DS_TYPE" "$DS_HOST" "$DS_PORT" "$DS_DB" \
+          --account "$DS_USER" --password "$DS_PASS" --name "$DS_NAME" --schema "$DS_SCHEMA" || exit 1
+      else
+        kweaver_retry "Data source connect" kweaver ds connect "$DS_TYPE" "$DS_HOST" "$DS_PORT" "$DS_DB" \
+          --account "$DS_USER" --password "$DS_PASS" --name "$DS_NAME" || exit 1
+      fi
+      echo -e "${GREEN}  Data source step finished.${NC}"
+    fi
+  fi
+fi
+
+# --- bkn ---
+if should_run_step "bkn" && step_in_selected "bkn" && [[ -f "$CASE_DIR/bkn/network.bkn" ]]; then
+  BKN_PUSH_ROOT="$CASE_DIR/bkn"
+  BKN_STAGE=""
+  if [[ "$BKN_STAGING" == true ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  (dry-run) cp -a $CASE_DIR/bkn -> \$TMPDIR/bkn-staging (then patch/validate/push from staging)"
+    else
+      BKN_STAGE="$(mktemp -d)"
+      cp -a "$CASE_DIR/bkn/." "$BKN_STAGE/"
+      BKN_PUSH_ROOT="$BKN_STAGE"
+      trap '[[ -n "${BKN_STAGE:-}" ]] && rm -rf "$BKN_STAGE"' EXIT
+    fi
+  fi
+  if [[ "$DRY_RUN" == true ]]; then
+    if [[ "$SYNC_DATAVIEWS" == true ]]; then
+      run_title "Sync data_view IDs from datasource"
+      echo "  (dry-run) $SCRIPT_DIR/scripts/patch_bkn_dataviews.sh --datasource-id $DATASOURCE_ID $BKN_PUSH_ROOT"
+    fi
+    if [[ "$SKIP_BKN_VALIDATE" != true ]]; then
+      run_title "Validate BKN (local)"
+      echo "  (dry-run) kweaver bkn validate $BKN_PUSH_ROOT"
+    fi
+    run_title "Push BKN"
+    echo "  (dry-run) kweaver bkn push $BKN_PUSH_ROOT"
+  else
+    if [[ "$SYNC_DATAVIEWS" != true ]] && [[ "$SKIP_BKN_VALIDATE" != true ]]; then
+      if compgen -G "$BKN_PUSH_ROOT/object_types"/*.bkn >/dev/null 2>&1 && grep -l '{{DV:' "$BKN_PUSH_ROOT/object_types"/*.bkn >/dev/null 2>&1; then
+        echo -e "${RED}object_types/*.bkn use {{DV:...}} placeholders — run with --sync-dataviews --datasource-id <uuid>,${NC}" >&2
+        echo -e "${RED}or use --skip-bkn-validate (not recommended).${NC}" >&2
+        exit 1
+      fi
+    fi
+    if [[ "$SYNC_DATAVIEWS" == true ]]; then
+      run_title "Sync data_view IDs from datasource"
+      bash "$SCRIPT_DIR/scripts/patch_bkn_dataviews.sh" --datasource-id "$DATASOURCE_ID" "$BKN_PUSH_ROOT" || exit 1
+    fi
+    if [[ "$SKIP_BKN_VALIDATE" != true ]]; then
+      run_title "Validate BKN (local)"
+      kweaver bkn validate "$BKN_PUSH_ROOT" || exit 1
+    fi
+    run_title "Push BKN"
+    kweaver_retry "BKN push" kweaver bkn push "$BKN_PUSH_ROOT" || exit 1
+    echo -e "${GREEN}  BKN push finished.${NC}"
+  fi
+fi
+
+# --- agents ---
+if should_run_step "agents" && step_in_selected "agents"; then
+  shopt -s nullglob
+  for f in "$CASE_DIR/agents/"*.json; do
+    run_title "Import agent $(basename "$f")"
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  (dry-run) POST .../agent-inout/import file=$f"
+    else
+      import_agent_with_retry "$f" || exit 1
+    fi
+  done
+  shopt -u nullglob
+fi
+
+# --- dataflow ---
+if should_run_step "dataflow" && step_in_selected "dataflow"; then
+  shopt -s nullglob
+  for f in "$CASE_DIR/dataflow/"*.json; do
+    run_title "Import dataflow $(basename "$f")"
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  (dry-run) POST .../data-flow/flow body=@$f"
+    else
+      import_dataflow_with_retry "$f" || exit 1
+    fi
+  done
+  shopt -u nullglob
+fi
+
+# --- tools ---
+if should_run_step "tools" && step_in_selected "tools"; then
+  shopt -s nullglob
+  for f in "$CASE_DIR/tools/"*.adp; do
+    run_title "Import toolbox $(basename "$f")"
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  (dry-run) POST .../impex/import/toolbox file=$f"
+    else
+      import_toolbox_with_retry "$f" || exit 1
+    fi
+  done
+  shopt -u nullglob
+fi
+
+# --- post-config: bind agent to KN, set default LLM, publish (optional) ---
+POST_CFG=false
+[[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || -n "$LLM_ID" ]] && POST_CFG=true
+
+if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" == true ]]; then
+  run_title "Post-config (dry-run)"
+  [[ "$AGENT_BIND_KN" == true ]] && echo "  (dry-run) $SCRIPT_DIR/scripts/agent_bind_kn.sh $CASE_DIR"
+  [[ "$AUTO_LLM" == true || -n "$LLM_ID" ]] && echo "  (dry-run) kweaver call ... + agent_set_llm.py (if LLM resolved)"
+  [[ "$AGENT_PUBLISH" == true ]] && echo "  (dry-run) kweaver agent publish <agent_id>"
+fi
+
+if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
+  run_title "Post-config (agent / LLM / publish)"
+  AGENT_JSON=""
+  shopt -s nullglob
+  for g in "$CASE_DIR/agents/"*.json; do AGENT_JSON="$g"; break; done
+  shopt -u nullglob
+  if [[ -z "$AGENT_JSON" ]]; then
+    echo -e "${RED}Post-config requires agents/*.json under $CASE_DIR${NC}" >&2
+    exit 1
+  fi
+  AGENT_KEY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["agents"][0]["key"])' "$AGENT_JSON")"
+  AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+  if [[ -z "$AGENT_ID" ]]; then
+    echo -e "${RED}Could not resolve agent id for key $AGENT_KEY${NC}" >&2
+    exit 1
+  fi
+  if [[ "$AGENT_BIND_KN" == true ]]; then
+    KN_NAME="$(awk '/^name:/{sub(/^name:[[:space:]]+/,""); print; exit}' "$CASE_DIR/bkn/network.bkn" | tr -d '\r')"
+    KN_ID="$(kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty | python3 -c "
+import json,sys
+j=json.load(sys.stdin)
+rows = j if isinstance(j,list) else j.get('entries') or j.get('data') or []
+want = sys.argv[1]
+for r in rows:
+  if r.get('name') == want:
+    print(r['id'])
+    sys.exit(0)
+sys.exit(1)
+" "$KN_NAME")" || true
+    if [[ -z "$KN_ID" ]]; then
+      echo -e "${RED}Could not find knowledge network named: $KN_NAME (push BKN first).${NC}" >&2
+      exit 1
+    fi
+    echo "Binding agent $AGENT_ID to knowledge network $KN_ID ($KN_NAME) ..."
+    kweaver agent update "$AGENT_ID" --knowledge-network-id "$KN_ID" || exit 1
+    echo -e "${GREEN}  Knowledge network bound.${NC}"
+  fi
+  RESOLVED_LLM_ID="$LLM_ID"
+  if [[ "$AUTO_LLM" == true ]]; then
+    TMPF="$(mktemp)"
+    if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$TMPF" 2>/dev/null; then
+      R="$(python3 "$SCRIPT_DIR/scripts/resolve_first_llm.py" <"$TMPF" || true)"
+      rm -f "$TMPF"
+      if [[ -n "$R" ]]; then
+        RESOLVED_LLM_ID="$R"
+      else
+        echo -e "${YELLOW}  --auto-llm: no LLM id parsed; skip.${NC}" >&2
+      fi
+    else
+      rm -f "$TMPF"
+      echo -e "${YELLOW}  --auto-llm: llm list failed; skip.${NC}" >&2
+    fi
+  fi
+  if [[ -n "$RESOLVED_LLM_ID" ]]; then
+    python3 "$SCRIPT_DIR/scripts/agent_set_llm.py" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
+  fi
+  if [[ "$AGENT_PUBLISH" == true ]]; then
+    kweaver agent publish "$AGENT_ID" || exit 1
+    echo -e "${GREEN}  Agent published.${NC}"
+  fi
+fi
+
+echo -e "${GREEN}=== Bootstrap complete ===${NC}"
+echo ""
+echo -e "${YELLOW}After import (see kweaver-core help — quick-start, model, decision-agent):${NC}"
+echo "  - BKN push/indexing needs embedding + model config; failures often mean missing or misconfigured small embedding model."
+echo "  - Use --sync-dataviews --datasource-id to avoid hand-editing data_view UUIDs in .bkn; use --agent-bind-kn / --llm-id / --agent-publish to reduce Studio steps."
+echo "  - Tool IDs inside imported agent.json may still differ per platform (toolbox import creates new ids)."

@@ -39,14 +39,15 @@ Notes:
 
 ## Bootstrap (recommended)
 
-From the repository root:
+From the **repository root**:
 
 ```bash
+cd supply_chain
 chmod +x bootstrap.sh   # once
-./bootstrap.sh supply_chain
+./bootstrap.sh
 ```
 
-The script is **interactive by default** (English prompts). For automation use `-y` and the `--ds-*` flags; see `./bootstrap.sh --help`.
+This script lives in this directory and **only** drives this case. It is **interactive by default** (English prompts). For automation use `-y` and the `--ds-*` flags; see `./bootstrap.sh --help`. Helper scripts are under `scripts/` in this directory.
 
 Typical order:
 
@@ -57,13 +58,17 @@ Typical order:
 
 ## After import
 
-- In **Studio → BKN**, open the network and **bind object types** to the correct data views for your environment (UUIDs in the shipped BKN still point at the original demo platform).
-- In **Decision agent** settings, attach the knowledge network, models, and tools as described in the upstream README.
+- **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <uuid>` resolves those names via `kweaver dataview find` and substitutes real UUIDs (use `--bkn-staging` to patch a temp copy so the repo stays unchanged).
+- **Studio (optional):** if you do not use the bootstrap flags above, bind object types to data views manually in **Studio → BKN**.
+- **Decision agent:** use bootstrap `--agent-bind-kn` / `--llm-id` / `--agent-publish`, or attach the knowledge network, models, and tools in agent settings.
 
 ## Validate BKN only
 
+With `{{DV:...}}` placeholders you must run `./scripts/patch_bkn_dataviews.sh` (or `./bootstrap.sh --sync-dataviews`) first; otherwise validation may fail.
+
 ```bash
-kweaver bkn validate supply_chain/bkn
+cd supply_chain
+kweaver bkn validate bkn
 ```
 
 ## Syncing BKN with the platform

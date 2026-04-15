@@ -4,6 +4,10 @@
 
 [English](README.md)
 
+## 文档
+
+KWeaver Core 官方产品文档（后端 API、CLI、SDK 等）见上游仓库： [kweaver-core/help](https://github.com/kweaver-ai/kweaver-core/tree/main/help) — 入口：[英文](https://github.com/kweaver-ai/kweaver-core/blob/main/help/en/README.md)、[中文](https://github.com/kweaver-ai/kweaver-core/blob/main/help/zh/README.md)。
+
 ## 案例
 
 | 案例 | 说明 |
@@ -14,15 +18,16 @@
 
 ## 引导脚本
 
-[`bootstrap.sh`](bootstrap.sh) 会扫描案例目录下已有内容，并依次执行：连接数据源、`kweaver bkn push`、导入 Agent / 数据流 / 工具箱等。
+供应链案例自带 [`supply_chain/bootstrap.sh`](supply_chain/bootstrap.sh) 与 [`supply_chain/scripts/`](supply_chain/scripts/)（数据视图、智能体绑定等辅助脚本）。在**该目录下**执行：
 
 **前提：** 已安装 CLI（`npm i -g @kweaver-ai/kweaver-sdk`），并完成 `kweaver auth login <平台地址>`。
 
 ```bash
+cd supply_chain
 chmod +x bootstrap.sh
-./bootstrap.sh supply_chain              # 交互式
-./bootstrap.sh supply_chain --help       # 查看参数
-./bootstrap.sh supply_chain -y --ds-host db.example.com --ds-db tem --ds-user root --ds-pass secret
+./bootstrap.sh              # 交互式
+./bootstrap.sh --help       # 查看参数
+./bootstrap.sh -y --ds-host db.example.com --ds-db tem --ds-user root --ds-pass secret
 ```
 
 ## 许可

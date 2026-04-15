@@ -52,5 +52,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | b09f9025-02bd-4c1d-9626-07895d7207fd | material_procurement_event |
+| data_view | {{DV:material_procurement_event}} | material_procurement_event |
 

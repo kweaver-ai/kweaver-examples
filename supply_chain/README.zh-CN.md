@@ -39,11 +39,12 @@ mysql --local-infile=1 -u <user> -p <database> < supply_chain/data_source/import
 
 ## 引导脚本（推荐）
 
-在仓库根目录：
+脚本与辅助工具在本目录：`bootstrap.sh`、`scripts/`。在**本目录**执行：
 
 ```bash
+cd supply_chain
 chmod +x bootstrap.sh   # 仅需一次
-./bootstrap.sh supply_chain
+./bootstrap.sh
 ```
 
 默认**交互式**（英文提示）。自动化可使用 `-y` 与 `--ds-*` 参数，详见 `./bootstrap.sh --help`。
@@ -57,13 +58,17 @@ chmod +x bootstrap.sh   # 仅需一次
 
 ## 导入之后
 
-- 在 **Studio → BKN** 中打开对应知识网络，将**对象类型**绑定到你环境中的数据视图（仓库内 BKN 里的 UUID 仍指向原始演示平台）。
-- 在**决策智能体**配置中，按上游说明挂载知识网络、模型与工具。
+- **数据视图（可自动化）：** 对象类型里使用占位符 `| data_view | {{DV:逻辑表名}} | 逻辑表名 |`。执行 bootstrap 时加 `--sync-dataviews --datasource-id <uuid>`，脚本会按表名解析原子视图 ID 并替换；加 `--bkn-staging` 则在临时目录打补丁并 push，**不改动仓库文件**。
+- **Studio（可选）：** 若不用上述参数，再在 **Studio → BKN** 里手工绑定数据视图。
+- **决策智能体：** 可用 bootstrap 的 `--agent-bind-kn` / `--llm-id` / `--agent-publish`，或在平台里配置。
 
 ## 仅校验 BKN
 
+存在 `{{DV:...}}` 占位符时须先运行 `./scripts/patch_bkn_dataviews.sh`（或带 `--sync-dataviews` 的 `./bootstrap.sh`），否则校验可能失败。
+
 ```bash
-kweaver bkn validate supply_chain/bkn
+cd supply_chain
+kweaver bkn validate bkn
 ```
 
 ## 与平台上的 BKN 对齐

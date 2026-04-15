@@ -46,5 +46,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | f86efa02-ad0c-4b46-bfcb-d19eb9855a2a | inventory_event |
+| data_view | {{DV:inventory_event}} | inventory_event |
 
