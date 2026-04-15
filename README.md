@@ -20,7 +20,7 @@ Add a new case by creating a directory with the same conventions (`data_source/`
 
 ## Bootstrap (per case)
 
-The supply-chain case includes its own [`supply_chain/bootstrap.sh`](supply_chain/bootstrap.sh) and [`supply_chain/scripts/`](supply_chain/scripts/) (dataview patch, agent bind, LLM helpers). Run from that directory:
+The supply-chain case includes its own [`supply_chain/bootstrap.sh`](supply_chain/bootstrap.sh) and [`supply_chain/scripts/`](supply_chain/scripts/) (dataview patch, agent bind, LLM binding via `kweaver agent`; shell + `jq` only). Run from that directory:
 
 **Prerequisite:** `kweaver auth login <url>` with a working CLI install (`npm i -g @kweaver-ai/kweaver-sdk`).
 

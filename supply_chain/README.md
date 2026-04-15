@@ -18,8 +18,9 @@ This case mirrors assets from the [kweaver-core deploy/auto_cofig](https://githu
 ## Prerequisites
 
 1. **KWeaver CLI** — Node.js 22+, `npm i -g @kweaver-ai/kweaver-sdk`
-2. **Login** — `kweaver auth login <your-platform-url>`
-3. **MySQL** — create an empty database, load `data_source/import_data.sql`, and ensure the platform can reach the host
+2. **jq** — JSON helpers used by `bootstrap.sh` and `scripts/*.sh` (e.g. `brew install jq`)
+3. **Login** — `kweaver auth login <your-platform-url>`
+4. **MySQL** — create an empty database, load `data_source/import_data.sql`, and ensure the platform can reach the host
 
 ## Import demo data (MySQL)
 

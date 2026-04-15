@@ -4,6 +4,9 @@
 # Usage: ./agent_bind_kn.sh <case_dir> [--publish]
 set -euo pipefail
 
+command -v kweaver >/dev/null 2>&1 || { echo "kweaver CLI not found" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq not found (brew install jq)" >&2; exit 1; }
+
 PUBLISH=false
 CASE_DIR=""
 while [[ $# -gt 0 ]]; do
@@ -17,9 +20,6 @@ if [[ -z "$CASE_DIR" || ! -d "$CASE_DIR" ]]; then
   echo "Usage: $0 <case_dir> [--publish]" >&2
   exit 2
 fi
-
-command -v kweaver >/dev/null 2>&1 || { echo "kweaver CLI not found" >&2; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "python3 not found" >&2; exit 1; }
 
 NET_FILE="$CASE_DIR/bkn/network.bkn"
 AGENT_JSON=""
@@ -42,26 +42,26 @@ if [[ -z "$KN_NAME" ]]; then
   exit 1
 fi
 
-AGENT_KEY="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["agents"][0]["key"])' <"$AGENT_JSON")"
+AGENT_KEY="$(jq -r '.agents[0].key // empty' "$AGENT_JSON")"
+if [[ -z "$AGENT_KEY" ]]; then
+  echo "Could not read agents[0].key from $AGENT_JSON" >&2
+  exit 1
+fi
 
-KN_ID="$(kweaver bkn list --name-pattern "$KN_NAME" --limit 20 --pretty | python3 -c "
-import json,sys
-j=json.load(sys.stdin)
-rows = j if isinstance(j,list) else j.get('entries') or j.get('data') or []
-want = sys.argv[1]
-for r in rows:
-  if r.get('name') == want:
-    print(r['id'])
-    sys.exit(0)
-sys.exit(1)
-" "$KN_NAME")" || true
+KN_ID="$(
+  kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty |
+    jq -r --arg n "$KN_NAME" '
+      (if type == "array" then . else (.entries // .data // []) end)
+      | map(select(.name == $n)) | .[0].id // empty
+    '
+)" || true
 
 if [[ -z "$KN_ID" ]]; then
   echo "Could not find knowledge network named exactly: $KN_NAME (kweaver bkn list --name-pattern)" >&2
   exit 1
 fi
 
-AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | jq -r '.id // empty')"
 if [[ -z "$AGENT_ID" ]]; then
   echo "Could not resolve agent id for key $AGENT_KEY" >&2
   exit 1

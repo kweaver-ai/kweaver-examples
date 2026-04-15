@@ -18,7 +18,7 @@ KWeaver Core 官方产品文档（后端 API、CLI、SDK 等）见上游仓库�
 
 ## 引导脚本
 
-供应链案例自带 [`supply_chain/bootstrap.sh`](supply_chain/bootstrap.sh) 与 [`supply_chain/scripts/`](supply_chain/scripts/)（数据视图、智能体绑定等辅助脚本）。在**该目录下**执行：
+供应链案例自带 [`supply_chain/bootstrap.sh`](supply_chain/bootstrap.sh) 与 [`supply_chain/scripts/`](supply_chain/scripts/)（数据视图、`kweaver` 智能体绑定与默认 LLM；仅 shell + `jq`）。在**该目录下**执行：
 
 **前提：** 已安装 CLI（`npm i -g @kweaver-ai/kweaver-sdk`），并完成 `kweaver auth login <平台地址>`。
 

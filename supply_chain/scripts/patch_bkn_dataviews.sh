@@ -43,7 +43,7 @@ if [[ ! -d "$OT_DIR" ]]; then
 fi
 
 command -v kweaver >/dev/null 2>&1 || { echo "kweaver CLI not found" >&2; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "python3 not found" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq not found (brew install jq)" >&2; exit 1; }
 
 resolve_dataview_id() {
   local view_name="$1"
@@ -51,27 +51,13 @@ resolve_dataview_id() {
   if ! out="$(kweaver dataview find --name "$view_name" --exact --datasource-id "$DS_ID" --no-wait --pretty 2>/dev/null)"; then
     return 1
   fi
-  python3 -c '
-import json,sys
-raw=sys.stdin.read()
-if not raw.strip():
-  sys.exit(1)
-j=json.loads(raw)
-def emit(x):
-  if isinstance(x, dict) and x.get("id"):
-    print(x["id"])
-    raise SystemExit(0)
-if isinstance(j, dict):
-  emit(j)
-  d = j.get("data")
-  if isinstance(d, dict):
-    emit(d)
-  if isinstance(d, list) and d:
-    emit(d[0])
-if isinstance(j, list) and j:
-  emit(j[0])
-sys.exit(1)
-' <<<"$out"
+  echo "$out" | jq -e -r '
+    if type == "object" and (.id != null and .id != "") then .id
+    elif (.data | type) == "object" and (.data.id != null and .data.id != "") then .data.id
+    elif (.data | type) == "array" and (.data | length > 0) then .data[0].id
+    elif type == "array" and length > 0 then .[0].id
+    else empty end
+  ' 2>/dev/null || return 1
 }
 
 sed_i() {

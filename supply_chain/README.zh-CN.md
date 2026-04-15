@@ -18,8 +18,9 @@
 ## 前置条件
 
 1. **KWeaver CLI** — Node.js 22+，`npm i -g @kweaver-ai/kweaver-sdk`
-2. **登录** — `kweaver auth login <平台地址>`
-3. **MySQL** — 创建空库并执行 `data_source/import_data.sql`，并保证平台能访问该数据库
+2. **jq** — `bootstrap.sh` 与 `scripts/*.sh` 解析 JSON 用（如 `brew install jq`）
+3. **登录** — `kweaver auth login <平台地址>`
+4. **MySQL** — 创建空库并执行 `data_source/import_data.sql`，并保证平台能访问该数据库
 
 ## 导入示例数据（MySQL）
 

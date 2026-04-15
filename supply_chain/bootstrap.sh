@@ -47,6 +47,7 @@ Options:
 
 Prerequisites (see kweaver-core help):
   - CLI: npm i -g @kweaver-ai/kweaver-sdk (Node 22+)
+  - jq: for JSON patching in scripts (bootstrap post-config, dataview patch, agent bind, LLM helper)
   - Auth: kweaver auth login <platform-url>  (add -k for self-signed HTTPS)
   - No-OAuth deployments: kweaver auth login <url> --no-auth
   - Business domain: use --bd or KWEAVER_BUSINESS_DOMAIN; minimal installs may not support
@@ -590,7 +591,7 @@ POST_CFG=false
 if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" == true ]]; then
   run_title "Post-config (dry-run)"
   [[ "$AGENT_BIND_KN" == true ]] && echo "  (dry-run) $SCRIPT_DIR/scripts/agent_bind_kn.sh $CASE_DIR"
-  [[ "$AUTO_LLM" == true || -n "$LLM_ID" ]] && echo "  (dry-run) kweaver call ... + agent_set_llm.py (if LLM resolved)"
+  [[ "$AUTO_LLM" == true || -n "$LLM_ID" ]] && echo "  (dry-run) kweaver call .../llm/list + scripts/agent_set_llm.sh (if LLM resolved)"
   [[ "$AGENT_PUBLISH" == true ]] && echo "  (dry-run) kweaver agent publish <agent_id>"
 fi
 
@@ -604,25 +605,22 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     echo -e "${RED}Post-config requires agents/*.json under $CASE_DIR${NC}" >&2
     exit 1
   fi
-  AGENT_KEY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["agents"][0]["key"])' "$AGENT_JSON")"
-  AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+  command -v jq >/dev/null 2>&1 || { echo -e "${RED}jq is required for post-config (brew install jq)${NC}" >&2; exit 1; }
+  AGENT_KEY="$(jq -r '.agents[0].key // empty' "$AGENT_JSON")"
+  AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | jq -r '.id // empty')"
   if [[ -z "$AGENT_ID" ]]; then
     echo -e "${RED}Could not resolve agent id for key $AGENT_KEY${NC}" >&2
     exit 1
   fi
   if [[ "$AGENT_BIND_KN" == true ]]; then
     KN_NAME="$(awk '/^name:/{sub(/^name:[[:space:]]+/,""); print; exit}' "$CASE_DIR/bkn/network.bkn" | tr -d '\r')"
-    KN_ID="$(kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty | python3 -c "
-import json,sys
-j=json.load(sys.stdin)
-rows = j if isinstance(j,list) else j.get('entries') or j.get('data') or []
-want = sys.argv[1]
-for r in rows:
-  if r.get('name') == want:
-    print(r['id'])
-    sys.exit(0)
-sys.exit(1)
-" "$KN_NAME")" || true
+    KN_ID="$(
+      kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty |
+        jq -r --arg n "$KN_NAME" '
+          (if type == "array" then . else (.entries // .data // []) end)
+          | map(select(.name == $n)) | .[0].id // empty
+        '
+    )" || true
     if [[ -z "$KN_ID" ]]; then
       echo -e "${RED}Could not find knowledge network named: $KN_NAME (push BKN first).${NC}" >&2
       exit 1
@@ -635,7 +633,9 @@ sys.exit(1)
   if [[ "$AUTO_LLM" == true ]]; then
     TMPF="$(mktemp)"
     if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$TMPF" 2>/dev/null; then
-      R="$(python3 "$SCRIPT_DIR/scripts/resolve_first_llm.py" <"$TMPF" || true)"
+      R="$(jq -r '
+        (.data.records[0].id // .data.list[0].id // .data[0].id // .records[0].id // .list[0].id // empty)
+      ' <"$TMPF" || true)"
       rm -f "$TMPF"
       if [[ -n "$R" ]]; then
         RESOLVED_LLM_ID="$R"
@@ -648,7 +648,7 @@ sys.exit(1)
     fi
   fi
   if [[ -n "$RESOLVED_LLM_ID" ]]; then
-    python3 "$SCRIPT_DIR/scripts/agent_set_llm.py" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
+    bash "$SCRIPT_DIR/scripts/agent_set_llm.sh" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
   fi
   if [[ "$AGENT_PUBLISH" == true ]]; then
     kweaver agent publish "$AGENT_ID" || exit 1
