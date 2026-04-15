@@ -36,6 +36,7 @@ Options:
   --skip-data-source     Skip data_source step (e.g. datasource already connected on the platform)
   --skip-bkn-validate    Skip "kweaver bkn validate" before push (not recommended)
   --sync-dataviews       Before bkn validate/push: patch object_types/*.bkn data_view UUIDs from the platform
+  --strict-dataviews     With --sync-dataviews: fail if any data_view row cannot be resolved (CI-safe)
   --datasource-id ID     Datasource UUID for --sync-dataviews (or env KWEAVER_DATASOURCE_ID)
   --bkn-staging          Copy bkn/ to a temp dir, patch/push there (repo unchanged; pairs well with --sync-dataviews)
   --agent-bind-kn        After imports: kweaver agent update --knowledge-network-id (matches network.bkn name + agent key)
@@ -85,6 +86,7 @@ AGENT_PUBLISH=false
 AUTO_LLM=false
 LLM_ID=""
 BKN_STAGING=false
+STRICT_DATAVIEWS=false
 RETRIES=3
 RETRY_DELAY_SEC=8
 
@@ -107,6 +109,7 @@ while [[ $# -gt 0 ]]; do
     --skip-data-source) SKIP_DATA_SOURCE=true; shift ;;
     --skip-bkn-validate) SKIP_BKN_VALIDATE=true; shift ;;
     --sync-dataviews) SYNC_DATAVIEWS=true; shift ;;
+    --strict-dataviews) STRICT_DATAVIEWS=true; shift ;;
     --datasource-id) DATASOURCE_ID="${2:-}"; shift 2 ;;
     --agent-bind-kn) AGENT_BIND_KN=true; shift ;;
     --agent-publish) AGENT_PUBLISH=true; shift ;;
@@ -125,6 +128,24 @@ done
 if [[ "$SYNC_DATAVIEWS" == true ]] && [[ -z "$DATASOURCE_ID" ]]; then
   echo -e "${RED}--sync-dataviews requires --datasource-id or KWEAVER_DATASOURCE_ID${NC}" >&2
   exit 2
+fi
+if [[ "$STRICT_DATAVIEWS" == true ]] && [[ "$SYNC_DATAVIEWS" != true ]]; then
+  echo -e "${RED}--strict-dataviews only applies with --sync-dataviews${NC}" >&2
+  exit 2
+fi
+if [[ "$SYNC_DATAVIEWS" == true ]] && [[ -n "$DATASOURCE_ID" ]]; then
+  if [[ ! "$DATASOURCE_ID" =~ ^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$ ]]; then
+    echo -e "${RED}--datasource-id does not look like a UUID: $DATASOURCE_ID${NC}" >&2
+    exit 2
+  fi
+fi
+
+# jq is required for dataview sync and post-config (agent id / KN / LLM).
+if [[ "$SYNC_DATAVIEWS" == true ]] || [[ "$AGENT_BIND_KN" == true || "$AGENT_PUBLISH" == true || "$AUTO_LLM" == true || -n "$LLM_ID" ]]; then
+  command -v jq >/dev/null 2>&1 || {
+    echo -e "${RED}This run needs jq (brew install jq).${NC}" >&2
+    exit 1
+  }
 fi
 if [[ "$AGENT_PUBLISH" == true ]] && [[ "$AGENT_BIND_KN" != true ]]; then
   echo -e "${YELLOW}Note: --agent-publish without --agent-bind-kn — ensure the agent already has the correct knowledge network in Studio.${NC}" >&2
@@ -512,7 +533,11 @@ if should_run_step "bkn" && step_in_selected "bkn" && [[ -f "$CASE_DIR/bkn/netwo
   if [[ "$DRY_RUN" == true ]]; then
     if [[ "$SYNC_DATAVIEWS" == true ]]; then
       run_title "Sync data_view IDs from datasource"
-      echo "  (dry-run) $SCRIPT_DIR/scripts/patch_bkn_dataviews.sh --datasource-id $DATASOURCE_ID $BKN_PUSH_ROOT"
+      if [[ "$STRICT_DATAVIEWS" == true ]]; then
+        echo "  (dry-run) $SCRIPT_DIR/scripts/patch_bkn_dataviews.sh --strict --datasource-id $DATASOURCE_ID $BKN_PUSH_ROOT"
+      else
+        echo "  (dry-run) $SCRIPT_DIR/scripts/patch_bkn_dataviews.sh --datasource-id $DATASOURCE_ID $BKN_PUSH_ROOT"
+      fi
     fi
     if [[ "$SKIP_BKN_VALIDATE" != true ]]; then
       run_title "Validate BKN (local)"
@@ -530,7 +555,11 @@ if should_run_step "bkn" && step_in_selected "bkn" && [[ -f "$CASE_DIR/bkn/netwo
     fi
     if [[ "$SYNC_DATAVIEWS" == true ]]; then
       run_title "Sync data_view IDs from datasource"
-      bash "$SCRIPT_DIR/scripts/patch_bkn_dataviews.sh" --datasource-id "$DATASOURCE_ID" "$BKN_PUSH_ROOT" || exit 1
+      if [[ "$STRICT_DATAVIEWS" == true ]]; then
+        bash "$SCRIPT_DIR/scripts/patch_bkn_dataviews.sh" --strict --datasource-id "$DATASOURCE_ID" "$BKN_PUSH_ROOT" || exit 1
+      else
+        bash "$SCRIPT_DIR/scripts/patch_bkn_dataviews.sh" --datasource-id "$DATASOURCE_ID" "$BKN_PUSH_ROOT" || exit 1
+      fi
     fi
     if [[ "$SKIP_BKN_VALIDATE" != true ]]; then
       run_title "Validate BKN (local)"
@@ -606,53 +635,115 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     exit 1
   fi
   command -v jq >/dev/null 2>&1 || { echo -e "${RED}jq is required for post-config (brew install jq)${NC}" >&2; exit 1; }
-  AGENT_KEY="$(jq -r '.agents[0].key // empty' "$AGENT_JSON")"
-  AGENT_ID="$(kweaver agent get-by-key "$AGENT_KEY" --pretty | jq -r '.id // empty')"
-  if [[ -z "$AGENT_ID" ]]; then
-    echo -e "${RED}Could not resolve agent id for key $AGENT_KEY${NC}" >&2
+  if ! jq -e '.agents | type == "array" and length > 0' "$AGENT_JSON" >/dev/null 2>&1; then
+    echo -e "${RED}$AGENT_JSON must contain a non-empty .agents array${NC}" >&2
     exit 1
   fi
+  AGENT_KEY="$(jq -r '.agents[0].key // empty' "$AGENT_JSON")"
+  if [[ -z "$AGENT_KEY" ]]; then
+    echo -e "${RED}Could not read .agents[0].key from $AGENT_JSON${NC}" >&2
+    exit 1
+  fi
+
+  AGENT_OUT="$(mktemp)"
+  AGENT_ERR="$(mktemp)"
+  LIST_OUT=""
+  LIST_ERR=""
+  LLM_TMP=""
+  LLM_ERR=""
+  cleanup_post_tmp() {
+    rm -f "$AGENT_OUT" "$AGENT_ERR" "${LIST_OUT:-}" "${LIST_ERR:-}" "${LLM_TMP:-}" "${LLM_ERR:-}" 2>/dev/null || true
+  }
+  # Preserve BKN staging cleanup (set earlier when --bkn-staging): chain with temp cleanup.
+  trap 'cleanup_post_tmp; [[ -n "${BKN_STAGE:-}" ]] && rm -rf "$BKN_STAGE"' EXIT
+
+  if ! kweaver agent get-by-key "$AGENT_KEY" --pretty >"$AGENT_OUT" 2>"$AGENT_ERR"; then
+    echo -e "${RED}kweaver agent get-by-key failed for key=$AGENT_KEY${NC}" >&2
+    [[ -s "$AGENT_ERR" ]] && cat "$AGENT_ERR" >&2
+    exit 1
+  fi
+  if [[ ! -s "$AGENT_OUT" ]]; then
+    echo -e "${RED}kweaver agent get-by-key returned empty body${NC}" >&2
+    exit 1
+  fi
+  if ! jq -e . >/dev/null 2>&1 "$AGENT_OUT"; then
+    echo -e "${RED}kweaver agent get-by-key returned invalid JSON${NC}" >&2
+    exit 1
+  fi
+  AGENT_ID="$(jq -r '.id // empty' "$AGENT_OUT")"
+  if [[ -z "$AGENT_ID" ]]; then
+    echo -e "${RED}Could not resolve agent id for key $AGENT_KEY (no .id in response)${NC}" >&2
+    exit 1
+  fi
+
   if [[ "$AGENT_BIND_KN" == true ]]; then
+    if [[ ! -f "$CASE_DIR/bkn/network.bkn" ]]; then
+      echo -e "${RED}--agent-bind-kn requires $CASE_DIR/bkn/network.bkn${NC}" >&2
+      exit 1
+    fi
     KN_NAME="$(awk '/^name:/{sub(/^name:[[:space:]]+/,""); print; exit}' "$CASE_DIR/bkn/network.bkn" | tr -d '\r')"
-    KN_ID="$(
-      kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty |
-        jq -r --arg n "$KN_NAME" '
-          (if type == "array" then . else (.entries // .data // []) end)
-          | map(select(.name == $n)) | .[0].id // empty
-        '
-    )" || true
+    if [[ -z "$KN_NAME" ]]; then
+      echo -e "${RED}Could not read knowledge network name from network.bkn${NC}" >&2
+      exit 1
+    fi
+    LIST_OUT="$(mktemp)"
+    LIST_ERR="$(mktemp)"
+    if ! kweaver bkn list --name-pattern "$KN_NAME" --limit 30 --pretty >"$LIST_OUT" 2>"$LIST_ERR"; then
+      echo -e "${RED}kweaver bkn list failed${NC}" >&2
+      [[ -s "$LIST_ERR" ]] && cat "$LIST_ERR" >&2
+      exit 1
+    fi
+    if [[ ! -s "$LIST_OUT" ]] || ! jq -e . >/dev/null 2>&1 "$LIST_OUT"; then
+      echo -e "${RED}kweaver bkn list returned empty or invalid JSON${NC}" >&2
+      exit 1
+    fi
+    KN_ID="$(jq -r --arg n "$KN_NAME" '
+      (if type == "array" then . else (.entries // .data // []) end)
+      | map(select(.name == $n)) | .[0].id // empty
+    ' "$LIST_OUT")"
     if [[ -z "$KN_ID" ]]; then
-      echo -e "${RED}Could not find knowledge network named: $KN_NAME (push BKN first).${NC}" >&2
+      echo -e "${RED}Could not find knowledge network named exactly: $KN_NAME (push BKN first).${NC}" >&2
       exit 1
     fi
     echo "Binding agent $AGENT_ID to knowledge network $KN_ID ($KN_NAME) ..."
-    kweaver agent update "$AGENT_ID" --knowledge-network-id "$KN_ID" || exit 1
+    kweaver_retry "Agent bind KN" kweaver agent update "$AGENT_ID" --knowledge-network-id "$KN_ID" || exit 1
     echo -e "${GREEN}  Knowledge network bound.${NC}"
   fi
   RESOLVED_LLM_ID="$LLM_ID"
   if [[ "$AUTO_LLM" == true ]]; then
-    TMPF="$(mktemp)"
-    if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$TMPF" 2>/dev/null; then
-      R="$(jq -r '
-        (.data.records[0].id // .data.list[0].id // .data[0].id // .records[0].id // .list[0].id // empty)
-      ' <"$TMPF" || true)"
-      rm -f "$TMPF"
-      if [[ -n "$R" ]]; then
-        RESOLVED_LLM_ID="$R"
+    LLM_TMP="$(mktemp)"
+    LLM_ERR="$(mktemp)"
+    if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$LLM_TMP" 2>"$LLM_ERR"; then
+      if [[ -s "$LLM_TMP" ]] && jq -e . >/dev/null 2>&1 "$LLM_TMP"; then
+        R="$(jq -r '
+          (.data.records[0].id // .data.list[0].id // .data[0].id // .records[0].id // .list[0].id // empty)
+        ' "$LLM_TMP")"
+        if [[ -n "$R" ]]; then
+          RESOLVED_LLM_ID="$R"
+        else
+          echo -e "${YELLOW}  --auto-llm: no LLM id in response (unexpected shape); skip.${NC}" >&2
+          [[ -s "$LLM_ERR" ]] && echo -e "${YELLOW}  (stderr from kweaver call)${NC}" >&2 && cat "$LLM_ERR" >&2
+        fi
       else
-        echo -e "${YELLOW}  --auto-llm: no LLM id parsed; skip.${NC}" >&2
+        echo -e "${YELLOW}  --auto-llm: empty or non-JSON response; skip.${NC}" >&2
+        [[ -s "$LLM_ERR" ]] && cat "$LLM_ERR" >&2
       fi
     else
-      rm -f "$TMPF"
-      echo -e "${YELLOW}  --auto-llm: llm list failed; skip.${NC}" >&2
+      echo -e "${YELLOW}  --auto-llm: kweaver call llm list failed; skip.${NC}" >&2
+      [[ -s "$LLM_ERR" ]] && cat "$LLM_ERR" >&2
     fi
   fi
   if [[ -n "$RESOLVED_LLM_ID" ]]; then
     bash "$SCRIPT_DIR/scripts/agent_set_llm.sh" "$AGENT_ID" "$RESOLVED_LLM_ID" || exit 1
   fi
   if [[ "$AGENT_PUBLISH" == true ]]; then
-    kweaver agent publish "$AGENT_ID" || exit 1
+    kweaver_retry "Agent publish" kweaver agent publish "$AGENT_ID" || exit 1
     echo -e "${GREEN}  Agent published.${NC}"
+  fi
+  cleanup_post_tmp
+  trap - EXIT
+  if [[ -n "${BKN_STAGE:-}" ]]; then
+    trap '[[ -n "${BKN_STAGE:-}" ]] && rm -rf "$BKN_STAGE"' EXIT
   fi
 fi
 

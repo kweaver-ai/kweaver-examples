@@ -59,7 +59,7 @@ Typical order:
 
 ## After import
 
-- **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <uuid>` resolves those names via `kweaver dataview find` and substitutes real UUIDs (use `--bkn-staging` to patch a temp copy so the repo stays unchanged).
+- **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <uuid>` resolves those names via `kweaver dataview find` and substitutes real UUIDs (use `--bkn-staging` to patch a temp copy so the repo stays unchanged). Use `--strict-dataviews` with `--sync-dataviews` in CI so any unresolved view fails the run instead of only warning.
 - **Studio (optional):** if you do not use the bootstrap flags above, bind object types to data views manually in **Studio → BKN**.
 - **Decision agent:** use bootstrap `--agent-bind-kn` / `--llm-id` / `--agent-publish`, or attach the knowledge network, models, and tools in agent settings.
 

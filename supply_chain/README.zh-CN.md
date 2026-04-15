@@ -59,7 +59,7 @@ chmod +x bootstrap.sh   # 仅需一次
 
 ## 导入之后
 
-- **数据视图（可自动化）：** 对象类型里使用占位符 `| data_view | {{DV:逻辑表名}} | 逻辑表名 |`。执行 bootstrap 时加 `--sync-dataviews --datasource-id <uuid>`，脚本会按表名解析原子视图 ID 并替换；加 `--bkn-staging` 则在临时目录打补丁并 push，**不改动仓库文件**。
+- **数据视图（可自动化）：** 对象类型里使用占位符 `| data_view | {{DV:逻辑表名}} | 逻辑表名 |`。执行 bootstrap 时加 `--sync-dataviews --datasource-id <uuid>`，脚本会按表名解析原子视图 ID 并替换；加 `--bkn-staging` 则在临时目录打补丁并 push，**不改动仓库文件**。CI 场景可同时加 `--strict-dataviews`，任一视图解析失败则整次失败退出（默认仅告警并跳过未解析行）。
 - **Studio（可选）：** 若不用上述参数，再在 **Studio → BKN** 里手工绑定数据视图。
 - **决策智能体：** 可用 bootstrap 的 `--agent-bind-kn` / `--llm-id` / `--agent-publish`，或在平台里配置。
 
