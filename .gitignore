@@ -5,3 +5,4 @@ __pycache__/
 # supply_chain bootstrap state / agent config backups
 supply_chain/.kweaver_bootstrap_state.json
 supply_chain/.bootstrap_backup/
+supply_chain/bkn/对象和表名对应关系表.md
