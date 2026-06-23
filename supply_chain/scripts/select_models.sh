@@ -27,56 +27,44 @@ if [[ "$NON_INTERACTIVE" == true ]]; then
 fi
 
 TMP="$(mktemp)"
-trap 'rm -f "$TMP" "${TMP}.norm" "${TMP}.emb" "${TMP}.llm"' EXIT
+trap 'rm -f "$TMP" "${TMP}.err" "${TMP}.llm.raw" "${TMP}.emb.raw" "${TMP}.llm" "${TMP}.emb"' EXIT
 
-if ! kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=200" --pretty >"$TMP" 2> "${TMP}.err"; then
-  err "kweaver call llm/list failed"
+# 大模型(对话/Agent）与小模型（embedding/向量）是两个不同 registry，各用各自的 kweaver 子命令拉取。
+# 小模型必须走 `model small list`：旧实现查 `/llm/list` 再按 model_type 过滤 embed，那个 registry 里根本没有小模型。
+if ! kweaver model llm list --limit 200 --json >"${TMP}.llm.raw" 2>"${TMP}.err"; then
+  err "kweaver model llm list 失败"
   [[ -s "${TMP}.err" ]] && cat "${TMP}.err" >&2
   exit 1
 fi
-if [[ ! -s "$TMP" ]] || ! jq -e . >/dev/null 2>&1 "$TMP"; then
-  err "llm/list returned empty or invalid JSON"
+if ! kweaver model small list --type embedding --limit 200 --json >"${TMP}.emb.raw" 2>"${TMP}.err"; then
+  err "kweaver model small list --type embedding 失败"
   [[ -s "${TMP}.err" ]] && cat "${TMP}.err" >&2
   exit 1
 fi
 
-jq -c '
-  ((.data.records // .data.list // .data // .records // .list // null)
-    | if . == null then []
-      elif type == "array" then .
-      else []
-      end
-  ) as $r
-  | $r
-  | map(select((.id // .model_id // "") != ""))
-  | map({
-      id: (.id // .model_id),
-      name: (.name // .display_name // .model_name // "-"),
-      model_type: ((.model_type // .type // "") | tostring)
-    })
-' "$TMP" >"${TMP}.norm"
+# 统一成 [{id,name,model_type}];兼容 {count,data:[...]} / {data:[...]} / [...]
+normalize() {
+  jq -c '
+    ((.data // .) | if type == "array" then . else [] end)
+    | map(select((.model_id // .id // "") != ""))
+    | map({
+        id: (.model_id // .id),
+        name: (.model_name // .name // .display_name // "-"),
+        model_type: ((.model_type // .type // "") | tostring)
+      })
+  ' "$1"
+}
+normalize "${TMP}.llm.raw" >"${TMP}.llm"
+normalize "${TMP}.emb.raw" >"${TMP}.emb"
 
-if [[ ! -s "${TMP}.norm" ]]; then
-  err "could not parse model records from API response"
+if [[ "$(jq 'length' "${TMP}.llm" 2>/dev/null || echo 0)" -eq 0 ]]; then
+  err "目标平台没有大模型（kweaver model llm list 为空）— 先在模型工厂注册大模型"
   exit 1
 fi
-
-COUNT="$(jq 'length' "${TMP}.norm")"
-if [[ "$COUNT" -eq 0 ]]; then
-  err "no models in list response"
+if [[ "$(jq 'length' "${TMP}.emb" 2>/dev/null || echo 0)" -eq 0 ]]; then
+  err "目标平台没有 embedding 小模型（kweaver model small list --type embedding 为空）"
+  err "— 先注册一个，否则知识网络索引会报 ModelFactory.ExternalSmallModel.GetInfo.IdNotExist"
   exit 1
-fi
-
-jq -c 'map(select((.model_type|ascii_downcase) | test("embed"))) | if length > 0 then . else [] end' "${TMP}.norm" >"${TMP}.emb"
-jq -c 'map(select((.model_type|ascii_downcase) | test("llm|chat|text|generation"))) | if length > 0 then . else [] end' "${TMP}.norm" >"${TMP}.llm"
-
-if [[ "$(jq 'length' "${TMP}.llm")" -eq 0 ]]; then
-  echo "Note: no model_type matching llm/chat; showing full list for 大模型." >&2
-  cp "${TMP}.norm" "${TMP}.llm"
-fi
-if [[ "$(jq 'length' "${TMP}.emb")" -eq 0 ]]; then
-  echo "Note: no model_type matching embed; showing full list for 小模型." >&2
-  cp "${TMP}.norm" "${TMP}.emb"
 fi
 
 pick_index() {

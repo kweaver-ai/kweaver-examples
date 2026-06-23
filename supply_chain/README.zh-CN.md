@@ -4,6 +4,12 @@
 
 本案例与 [kweaver-core 的 deploy/auto_cofig 目录](https://github.com/kweaver-ai/kweaver-core/tree/main/deploy/auto_cofig) 资产对应：包含 MySQL 示例数据、BKN 模块、决策智能体、数据流与工具箱等，可通过 KWeaver CLI 导入平台。
 
+> **与产品教程的关系**：KWeaver 产品文档里的《快速从 0 到 1 搭建供应链数字员工场景》是**操作教程**（讲在平台上点哪、看什么）；本仓库是该教程配套的**可导入素材包**（BKN / 决策智能体 / 数据流 / 工具箱 / 种子数据）。教程负责“怎么操作”，本目录负责“导入什么”。
+
+> **两种导入方式，别混用**：
+> 1. **推送 `.bkn` 源码树**（推荐）：用 `bootstrap.sh` → `kweaver bkn push`。`.bkn` 里数据视图用占位符 `{{DV:...}}`、不含写死的模型 id，跨平台可移植。
+> 2. **导入整库导出 `bkn/供应链业务知识网络demo.json`**：这是从**某台平台导出**的整库快照，**内含该平台的写死 ID**（小模型 model_id、数据视图 id、行动类工具箱绑定）。**直接导到另一台平台会报错**，必须先用 `scripts/patch_demo_json.sh` 把 ID 换成目标平台的真实值，见下文《导入整库导出 JSON》。
+
 ## 目录说明
 
 | 目录            | 内容                                                                     |
@@ -48,7 +54,11 @@ chmod +x bootstrap.sh   # 仅需一次
 ./bootstrap.sh
 ```
 
+> **Windows 用户**：`.sh` 在 cmd / PowerShell 里**直接双击或运行没有任何反应**——这是 bash 脚本，需在 **WSL** 或 **Git Bash** 里跑。先确认 `bash --version`、`kweaver --version`、`jq --version` 都正常，并且当前目录就是 `supply_chain`，否则脚本不会启动。
+
 默认**交互式**（英文提示）。自动化可使用 `-y` 与 `--ds-*` 参数，详见 `./bootstrap.sh --help`。
+
+> **注**：较新版本 CLI 已移除 `kweaver ds connect`，数据源连接迁到 `kweaver vega catalog create --connector-type mysql --connector-config '{...}'`，原子视图改用 `kweaver resource find`。下文“建议顺序”中的 `ds connect` 字样在新 CLI 上请相应替换。
 
 **环境预检：** 执行前会运行 `scripts/preflight.sh`（检查 Node/kweaver/curl、登录 token；若本次会做 post-config 模型相关操作，则要求平台上至少各有一条「对话类」与「嵌入类」模型）。一般勿用 `--skip-preflight`。
 
@@ -69,6 +79,42 @@ chmod +x bootstrap.sh   # 仅需一次
 - **Studio（可选）：** 若不用上述参数，再在 **Studio → BKN** 里手工绑定数据视图。
 - **决策智能体：** 可用 bootstrap 的 `--agent-bind-kn` / `--llm-id` / `--agent-publish`，或在平台里配置。
 - **大模型 / 小模型：** 使用 `--pick-models`，脚本会通过 `kweaver call …/llm/list` 拉取列表并**按序号交互选择**对话大模型与向量（嵌入）小模型。配合 `-y` 非交互时需同时指定 `--llm-id` 与 `--embedding-id`。小模型会尝试通过 `scripts/kn_set_embedding.sh` 写回知识网络；若平台 JSON 无对应字段，请按脚本提示在 Studio 中配置。
+
+## 导入整库导出 JSON（`供应链业务知识网络demo.json`）
+
+`bkn/供应链业务知识网络demo.json` 是整库平台导出，**写死了导出源平台的三类 ID**，换平台直接导入会逐个报错：
+
+| 写死的 ID | 直接导入的报错 |
+| --- | --- |
+| 每个属性 `vector_config.model_id`（小模型/embedding，约 30 处） | `ModelFactory.ExternalSmallModel.GetInfo.IdNotExist`「部分配置 id 不存在」 |
+| 每个对象类 `data_source.id`（数据视图，18 个） | `BknBackend.ObjectType.InvalidParameter`「数据视图 [uuid] 不存在」 |
+| 行动类 `action_source.box_id` / `tool_id`（工具箱绑定，1 个） | `AgentOperatorIntegration.BadRequest.ToolBoxNotFound`「工具箱不存在」 |
+
+`scripts/patch_demo_json.sh` 在导入前**从目标平台动态拉取真实 ID 回填**（不依赖文件里写死的值）：
+
+- 小模型 id ← `kweaver model small list --type embedding`（不指定就取第一个，或用 `--embedding-id` / `--embedding-name`）
+- 数据视图 id ← `kweaver resource list --datasource-id <catalog>`，按表名（自动忽略 `库名.` 前缀）匹配，并把 `data_source.type` 由旧的 `data_view` 改为当前平台的 `resource`
+- 行动类工具绑定无法自动解析：用 `--strip-actions` 先剥离，导入后在 Studio 里重新绑定工具
+
+```bash
+cd supply_chain
+# 1. 准备数据源：本案例的 demo.json 对应 data_source/mydatabase.sql（表名与 18 个视图 18/18 对齐；
+#    注意 demo_data/*.csv + import_data.sql 是另一套、表名不完全一致，不要混用）。
+#    在目标平台用 vega 注册该库为 catalog，并 discover 出资源：
+#      kweaver vega catalog create --name sc --connector-type mariadb \
+#        --connector-config '{"host":"<DB能被平台访问的IP>","port":3306,"username":"root","password":"***","databases":["supplychaindata"]}'
+#      kweaver vega catalog discover <catalog-id> --wait
+# 2. 改 ID 后导入：
+./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
+    --datasource-id <catalog-id> --strip-actions --strict --out /tmp/demo.patched.json
+kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
+```
+
+> **数据视图 vs 资源（两种绑定模型，行为不同）**：
+> - 老平台用 `data_view`：导入后会 **build + 向量化**写入 OpenSearch，**依赖可用的小模型**——小模型 id 不对就是截图里的 `IdNotExist`。
+> - 新平台用 `resource`：对象类**实时查询 vega，不 build、不用 embedding**。patcher 默认改成 `resource`，导入即用。
+>
+> 不论哪种，**小模型本身必须可用**：即使 id 正确，若该模型后端（如阿里云 DashScope）欠费/不可用，向量化仍会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）——这是平台/账单问题，需在模型工厂里换一个可用的小模型。
 
 ## 仅校验 BKN
 
