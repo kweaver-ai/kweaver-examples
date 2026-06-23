@@ -58,7 +58,7 @@ chmod +x bootstrap.sh   # once
 
 This script lives in this directory and **only** drives this case. It is **interactive by default** (English prompts). For automation use `-y` and the `--ds-*` flags; see `./bootstrap.sh --help`. Helper scripts are under `scripts/` in this directory.
 
-> **Note**: newer CLI versions removed `kweaver ds connect`; datasource connection moved to `kweaver vega catalog create --connector-type mysql --connector-config '{...}'`, and atomic views are resolved with `kweaver resource find`. Replace the `ds connect` wording in "Typical order" accordingly on a newer CLI.
+> **SDK version (important)**: this case targets the **old data_view backend**, whose flow needs `kweaver ds connect` and `kweaver dataview find` — both **removed in the new SDK (0.8.x)**. `bootstrap.sh` has **`--legacy-sdk` ON by default**: if the active kweaver is 0.8.x it auto-installs `kweaver-sdk@0.7.4` (latest 0.7.x, still has `ds`/`dataview`) into `./.legacy-sdk/` and prefers it for this run only (global install untouched; delete `.legacy-sdk/` to reset); if the active kweaver is already 0.7.x it is used as-is. Use `--no-legacy-sdk` on new resource-model platforms, `--legacy-sdk-version` to pin a version.
 
 **Preflight:** before mutating the platform, `bootstrap.sh` runs `scripts/preflight.sh` (Node/kweaver/curl, auth token, and at least one chat + one embedding model when post-config needs models). Use `--skip-preflight` only in exceptional cases.
 
@@ -90,31 +90,27 @@ Typical order:
 | per-object-type `data_source.id` (data_view, 18) | `BknBackend.ObjectType.InvalidParameter` "data view [uuid] does not exist" |
 | action-type `action_source.box_id` / `tool_id` (toolbox binding, 1) | `AgentOperatorIntegration.BadRequest.ToolBoxNotFound` |
 
-`scripts/patch_demo_json.sh` re-maps these by **fetching real ids from the target platform** at run time (it does not trust the values baked into the file):
+> **Prefer `.bkn` + bootstrap over demo.json**: the `.bkn` tree uses `{{DV:table}}` placeholders and no hard-coded ids — clean across platforms; importing demo.json directly is the path the user got burned on. Use the patcher below only if you must import the full-export JSON.
+
+`scripts/patch_demo_json.sh` re-maps these by **fetching real ids from the target platform** at run time (it does not trust the values baked into the file), keeping the old `data_view` binding model:
 
 - small-model id ← `kweaver model small list --type embedding` (first one by default, or `--embedding-id` / `--embedding-name`)
-- data_view id ← `kweaver resource list --datasource-id <catalog>`, matched by table name (the `dbname.` prefix is ignored), and `data_source.type` is switched from the old `data_view` to the platform's `resource`
+- data_view id ← `kweaver call GET /api/mdl-data-model/v1/data-views?data_source_id=<ds>`, matched by name / technical_name / meta_table_name (the new SDK has no `dataview` subcommand, but `kweaver call` still reaches the old endpoint — **no downgrade needed**); `data_source.type` stays `data_view`
 - action-type toolbox binding cannot be auto-resolved: pass `--strip-actions` to drop the action types, then re-bind tools in Studio
 
 ```bash
 cd supply_chain
-# 1. The demo.json's matching datasource is data_source/mydatabase.sql (table names align 18/18 with the
-#    18 views). NOTE: demo_data/*.csv + import_data.sql is a DIFFERENT set whose table names do not fully
-#    match — do not mix them. Register the DB as a vega catalog on the target platform and discover it:
-#      kweaver vega catalog create --name sc --connector-type mariadb \
-#        --connector-config '{"host":"<DB IP reachable by the platform>","port":3306,"username":"root","password":"***","databases":["supplychaindata"]}'
-#      kweaver vega catalog discover <catalog-id> --wait
-# 2. Re-map ids and import:
+# Datasource: demo.json matches data_source/mydatabase.sql (table names align 18/18 with the 18 views).
+#   NOTE: demo_data/*.csv + import_data.sql is a DIFFERENT set whose table names do not fully match — do not mix.
+# Connect that DB as a data_connection datasource first (old SDK: kweaver ds connect maria <host> <port> <db>
+#   --account <user> --password <pass>, or use bootstrap's data_source step), and make sure each of the 18
+#   tables has a same-named data_view; <ds-id> is that datasource id.
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
-    --datasource-id <catalog-id> --strip-actions --strict --out /tmp/demo.patched.json
+    --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
 ```
 
-> **data_view vs resource (two binding models, different behavior)**:
-> - Old platforms use `data_view`: import triggers **build + vectorization** into OpenSearch and **needs a working small model** — a wrong id is the `IdNotExist` from the screenshot.
-> - New platforms use `resource`: object types are queried from vega **in real time, no build, no embedding**. The patcher switches to `resource` by default.
->
-> Either way the **small model itself must be usable**: even with a correct id, if its upstream (e.g. Aliyun DashScope) is unpaid/unavailable, vectorization still fails with `ExternalSmallModel.UnknownError` (e.g. `Arrearage`) — a platform/billing issue; register a working small model in the model factory.
+> **A working small model is mandatory (there is no "runs without a small model" here)**: for both `.bkn` and demo.json, BKN push/build **vectorizes concept groups + object-type concepts into OpenSearch**, which **always calls the small model**. Even with a correct id, if its upstream (e.g. a cloud vendor) is unpaid/unavailable, it fails with `ExternalSmallModel.UnknownError` (e.g. `Arrearage`) — a platform/billing issue; register a working small model in the model factory.
 
 ## Validate BKN only
 

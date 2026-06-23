@@ -58,7 +58,7 @@ chmod +x bootstrap.sh   # 仅需一次
 
 默认**交互式**（英文提示）。自动化可使用 `-y` 与 `--ds-*` 参数，详见 `./bootstrap.sh --help`。
 
-> **注**：较新版本 CLI 已移除 `kweaver ds connect`，数据源连接迁到 `kweaver vega catalog create --connector-type mysql --connector-config '{...}'`，原子视图改用 `kweaver resource find`。下文“建议顺序”中的 `ds connect` 字样在新 CLI 上请相应替换。
+> **SDK 版本（重要）**：本案例针对**老的 data_view 平台**，其流程依赖 `kweaver ds connect` 与 `kweaver dataview find` —— 这两个命令在**新 SDK 0.8.x 已被移除**。`bootstrap.sh` **默认 `--legacy-sdk`（开）**：若检测到本机 kweaver 是 0.8.x，会自动在本目录 `./.legacy-sdk/` 隔离安装 `kweaver-sdk@0.7.4`（最新 0.7.x，仍带 `ds`/`dataview`）并**本次优先使用**，全局安装不动（删 `.legacy-sdk/` 即复位）；本机已是 0.7.x 则直接用。新版 resource 平台用 `--no-legacy-sdk` 关掉，`--legacy-sdk-version` 可指定版本。
 
 **环境预检：** 执行前会运行 `scripts/preflight.sh`（检查 Node/kweaver/curl、登录 token；若本次会做 post-config 模型相关操作，则要求平台上至少各有一条「对话类」与「嵌入类」模型）。一般勿用 `--skip-preflight`。
 
@@ -90,31 +90,26 @@ chmod +x bootstrap.sh   # 仅需一次
 | 每个对象类 `data_source.id`（数据视图，18 个） | `BknBackend.ObjectType.InvalidParameter`「数据视图 [uuid] 不存在」 |
 | 行动类 `action_source.box_id` / `tool_id`（工具箱绑定，1 个） | `AgentOperatorIntegration.BadRequest.ToolBoxNotFound`「工具箱不存在」 |
 
-`scripts/patch_demo_json.sh` 在导入前**从目标平台动态拉取真实 ID 回填**（不依赖文件里写死的值）：
+> **首选 `.bkn` + bootstrap，而不是 demo.json**：`.bkn` 用 `{{DV:表名}}` 占位符、无写死 id，跨平台干净；直接导 demo.json 正是客户踩坑那条。仅当你必须导整库 JSON 时才用下面的 patcher。
 
-- 小模型 id ← `kweaver model small list --type embedding`（不指定就取第一个，或用 `--embedding-id` / `--embedding-name`）
-- 数据视图 id ← `kweaver resource list --datasource-id <catalog>`，按表名（自动忽略 `库名.` 前缀）匹配，并把 `data_source.type` 由旧的 `data_view` 改为当前平台的 `resource`
-- 行动类工具绑定无法自动解析：用 `--strip-actions` 先剥离，导入后在 Studio 里重新绑定工具
+`scripts/patch_demo_json.sh` 在导入前**从目标平台动态拉取真实 ID 回填**（不依赖文件里写死的值），保持老的 `data_view` 绑定模型：
+
+- 小模型 id ← `kweaver model small list --type embedding`（不指定取第一个，或用 `--embedding-id` / `--embedding-name`）
+- 数据视图 id ← `kweaver call GET /api/mdl-data-model/v1/data-views?data_source_id=<ds>`，按 name / technical_name / meta_table_name 匹配表名（新 SDK 没了 `dataview` 子命令，但 `kweaver call` 仍能打这个老端点，**无需降级 SDK**）；`data_source.type` 保持 `data_view` 不变
+- 行动类工具绑定无法自动解析：用 `--strip-actions` 先剥离，导入后在 Studio 重新绑定工具
 
 ```bash
 cd supply_chain
-# 1. 准备数据源：本案例的 demo.json 对应 data_source/mydatabase.sql（表名与 18 个视图 18/18 对齐；
-#    注意 demo_data/*.csv + import_data.sql 是另一套、表名不完全一致，不要混用）。
-#    在目标平台用 vega 注册该库为 catalog，并 discover 出资源：
-#      kweaver vega catalog create --name sc --connector-type mariadb \
-#        --connector-config '{"host":"<DB能被平台访问的IP>","port":3306,"username":"root","password":"***","databases":["supplychaindata"]}'
-#      kweaver vega catalog discover <catalog-id> --wait
-# 2. 改 ID 后导入：
+# 数据源：demo.json 对应 data_source/mydatabase.sql（表名与 18 个视图 18/18 对齐；
+#   demo_data/*.csv + import_data.sql 是另一套、表名不完全一致，勿混用）。
+# 先连好该库的 data_connection 数据源(老 SDK：kweaver ds connect maria <host> <port> <db> --account <user> --password <pass>，
+#   或直接用 bootstrap 的 data_source 步骤)，并确保 18 张表都有同名 data_view；<ds-id> 即该数据源 id。
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
-    --datasource-id <catalog-id> --strip-actions --strict --out /tmp/demo.patched.json
+    --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
 ```
 
-> **数据视图 vs 资源（两种绑定模型，行为不同）**：
-> - 老平台用 `data_view`：导入后会 **build + 向量化**写入 OpenSearch，**依赖可用的小模型**——小模型 id 不对就是截图里的 `IdNotExist`。
-> - 新平台用 `resource`：对象类**实时查询 vega，不 build、不用 embedding**。patcher 默认改成 `resource`，导入即用。
->
-> 不论哪种，**小模型本身必须可用**：即使 id 正确，若该模型后端（如阿里云 DashScope）欠费/不可用，向量化仍会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）——这是平台/账单问题，需在模型工厂里换一个可用的小模型。
+> **小模型必须可用（这套不存在“没有小模型也能跑”）**：不管 `.bkn` 还是 demo.json，BKN push/build 都会把概念分组 + 对象类概念**向量化写入 OpenSearch**，**强制调用小模型**。即使 model id 正确，若该模型后端（如某云厂商）欠费/不可用，会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）—— 这是平台/账单问题，需在模型工厂换一个可用小模型。
 
 ## 仅校验 BKN
 
