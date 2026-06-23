@@ -52,7 +52,7 @@ chmod +x bootstrap.sh   # 仅需一次
 
 默认**交互式**（英文提示）。自动化可使用 `-y` 与 `--ds-*` 参数，详见 `./bootstrap.sh --help`。
 
-> **注**：较新版本 CLI 已移除 `kweaver ds connect`，数据源连接迁到 `kweaver vega catalog create --connector-type mysql --connector-config '{...}'`，原子视图改用 `kweaver resource find`。下文“建议顺序”中的 `ds connect` 字样在新 CLI 上请相应替换。
+> **SDK 版本自动处理（重要）**：本案例走老的 data_view 模型，依赖 `kweaver ds connect` 与数据视图接口 —— 新 SDK 0.8.x 已移除这些命令。`bootstrap.sh` **默认 `--legacy-sdk`（开）**：检测到本机 kweaver 是 0.8.x 或未安装，会自动在 `./.legacy-sdk/` 隔离安装并使用 `kweaver-sdk@0.7.4`（仍带 `ds`/`dataview`），**全局安装不动**；本机已是 0.7.x 则直接用。新版 resource 平台加 `--no-legacy-sdk`。下文“建议顺序”的 `ds connect` 即由该 legacy CLI 提供。
 
 **环境预检：** 执行前会运行 `scripts/preflight.sh`（检查 Node/kweaver/curl、登录 token；若本次会做 post-config 模型相关操作，则要求平台上至少各有一条「对话类」与「嵌入类」模型）。一般勿用 `--skip-preflight`。
 

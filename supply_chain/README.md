@@ -52,7 +52,7 @@ chmod +x bootstrap.sh   # once
 
 This script lives in this directory and **only** drives this case. It is **interactive by default** (English prompts). For automation use `-y` and the `--ds-*` flags; see `./bootstrap.sh --help`. Helper scripts are under `scripts/` in this directory.
 
-> **Note**: newer CLI versions removed `kweaver ds connect`; datasource connection moved to `kweaver vega catalog create --connector-type mysql --connector-config '{...}'`, and atomic views are resolved with `kweaver resource find`. Replace the `ds connect` wording in "Typical order" accordingly on a newer CLI.
+> **SDK version is handled for you (important)**: this case uses the old data_view model, which needs `kweaver ds connect` and the data-view APIs — removed in the new SDK (0.8.x). `bootstrap.sh` has **`--legacy-sdk` ON by default**: if the active kweaver is 0.8.x (or not installed) it auto-installs and uses `kweaver-sdk@0.7.4` (still has `ds`/`dataview`) under `./.legacy-sdk/` (global install untouched); if already 0.7.x it uses it as-is. Pass `--no-legacy-sdk` on new resource-model platforms. The `ds connect` in "Typical order" is provided by that legacy CLI.
 
 **Preflight:** before mutating the platform, `bootstrap.sh` runs `scripts/preflight.sh` (Node/kweaver/curl, auth token, and at least one chat + one embedding model when post-config needs models). Use `--skip-preflight` only in exceptional cases.
 
