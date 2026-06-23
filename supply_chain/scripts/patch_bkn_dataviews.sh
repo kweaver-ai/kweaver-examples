@@ -66,32 +66,31 @@ command -v jq >/dev/null 2>&1 || { err "jq not found (e.g. brew install jq)"; ex
 
 WARN_COUNT=0
 
+# Prefetch ALL data_views for this datasource in ONE call, then match client-side.
+# Why not `kweaver dataview find` per placeholder:
+#   - that subcommand was removed in the new SDK (0.8.x); `kweaver call` reaches the old endpoint on both,
+#   - and per-name find hammered with 17+ rapid calls intermittently returns [] (rate-limit/eventual
+#     consistency), which silently dropped placeholders. One list call is reliable and SDK-agnostic.
+DV_LIST="[]"
+{
+  dv_tmp="$(mktemp)"; dv_err="$(mktemp)"
+  if kweaver call "/api/mdl-data-model/v1/data-views?data_source_id=${DS_ID}&limit=1000" >"$dv_tmp" 2>"$dv_err"; then
+    DV_LIST="$(jq -c '(.entries // .data // .data.list // []) | map({name, technical_name, meta_table_name, id})' "$dv_tmp" 2>/dev/null || echo "[]")"
+  else
+    [[ -s "$dv_err" ]] && cat "$dv_err" >&2
+    err "Failed to list data_views (GET /api/mdl-data-model/v1/data-views?data_source_id=$DS_ID)"
+  fi
+  rm -f "$dv_tmp" "$dv_err"
+}
+DV_COUNT="$(echo "$DV_LIST" | jq 'length' 2>/dev/null || echo 0)"
+echo "Loaded $DV_COUNT data_view(s) for datasource $DS_ID" >&2
+
+# Match the placeholder/table name against data_view name / technical_name / meta_table_name (exact).
 resolve_dataview_id() {
   local view_name="$1"
-  local out errf ec
-  errf="$(mktemp)"
-  ec=0
-  out="$(kweaver dataview find --name "$view_name" --exact --datasource-id "$DS_ID" --no-wait --pretty 2>"$errf")" || ec=$?
-  if [[ "$ec" != 0 ]]; then
-    [[ -s "$errf" ]] && echo "  (kweaver dataview find stderr for '$view_name'):" >&2 && cat "$errf" >&2
-    rm -f "$errf"
-    return 1
-  fi
-  rm -f "$errf"
-  if [[ -z "$(echo "$out" | tr -d '[:space:]')" ]]; then
-    return 1
-  fi
-  if ! echo "$out" | jq -e . >/dev/null 2>&1; then
-    err "dataview find returned non-JSON for '$view_name'"
-    return 1
-  fi
-  echo "$out" | jq -e -r '
-    if type == "object" and (.id != null and .id != "") then .id
-    elif (.data | type) == "object" and (.data.id != null and .data.id != "") then .data.id
-    elif (.data | type) == "array" and (.data | length > 0) then .data[0].id
-    elif type == "array" and length > 0 then .[0].id
-    else empty end
-  ' 2>/dev/null || return 1
+  echo "$DV_LIST" | jq -r --arg n "$view_name" '
+    [ .[] | select(.name==$n or .technical_name==$n or .meta_table_name==$n) ] | .[0].id // empty
+  ' 2>/dev/null
 }
 
 sed_i() {
