@@ -50,6 +50,10 @@ Options:
   --skip-preflight       Skip scripts/preflight.sh (not recommended)
   --ignore-state-deps    Allow --only <step> even if state file shows prerequisites missing
   --rollback-last        Undo the last recorded reversible action (publish / bind / set_llm), then exit
+  --legacy-sdk           (default ON) Install + use kweaver-sdk 0.7.x locally; the data_view model
+                         needs `ds`/`dataview`, removed in 0.8.x. Installs into ./.legacy-sdk (gitignored)
+  --no-legacy-sdk        Use the globally installed kweaver instead (for new resource-model platforms)
+  --legacy-sdk-version V Pin the legacy SDK version (default: 0.7.4, latest 0.7.x)
 
 Prerequisites (see kweaver-core help):
   - CLI: npm i -g @kweaver-ai/kweaver-sdk (Node 22+)
@@ -104,6 +108,10 @@ RETRY_DELAY_SEC=8
 SKIP_PREFLIGHT=false
 IGNORE_STATE_DEPS=false
 ROLLBACK_LAST=false
+# Default ON: this case targets the old data_view backend, which needs the old SDK's
+# `ds` / `dataview` commands (removed in 0.8.x). Use --no-legacy-sdk on new (resource) platforms.
+LEGACY_SDK=true
+LEGACY_SDK_VERSION="0.7.4"   # latest 0.7.x (the line that still has ds/dataview)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -138,6 +146,9 @@ while [[ $# -gt 0 ]]; do
     --skip-preflight) SKIP_PREFLIGHT=true; shift ;;
     --ignore-state-deps) IGNORE_STATE_DEPS=true; shift ;;
     --rollback-last) ROLLBACK_LAST=true; shift ;;
+    --legacy-sdk) LEGACY_SDK=true; shift ;;
+    --no-legacy-sdk) LEGACY_SDK=false; shift ;;
+    --legacy-sdk-version) LEGACY_SDK_VERSION="${2:-0.7.4}"; LEGACY_SDK=true; shift 2 ;;
     *) echo -e "${RED}Unknown option: $1${NC}" >&2; usage; exit 2 ;;
   esac
 done
@@ -196,6 +207,42 @@ session_is_done() {
 # Self-signed HTTPS: kweaver (Node) needs this; curl uses -k via curl_api.
 if [[ "$CURL_INSECURE" == true ]]; then
   export NODE_TLS_REJECT_UNAUTHORIZED=0
+fi
+
+# The data_view model (data_source `ds connect` + `--sync-dataviews` `dataview find`) relies on
+# `kweaver ds` / `kweaver dataview`, which the new SDK (0.8.x) removed. --legacy-sdk installs a pinned
+# old SDK into a local, gitignored dir and puts it FIRST on PATH for this run only (global install
+# is untouched). Use it on platforms still on the old data_view backend.
+if [[ "$LEGACY_SDK" == true ]]; then
+  CUR_KW_VER="$(kweaver --version 2>/dev/null | head -1 | tr -d '[:space:]')"
+  if [[ "$CUR_KW_VER" == 0.7.* ]]; then
+    # Already on the 0.7.x line — it has ds/dataview, no downgrade needed.
+    echo -e "${GREEN}kweaver ${CUR_KW_VER} is on the 0.7.x line (has ds/dataview); using it as-is.${NC}" >&2
+  else
+    # No kweaver, or a newer 0.8.x (which removed ds/dataview) — pin 0.7.x locally and prefer it
+    # for THIS run (PATH prepend). The global install is left untouched; remove ./.legacy-sdk to reset.
+    command -v npm >/dev/null 2>&1 || { echo -e "${RED}--legacy-sdk needs npm (Node 22+).${NC}" >&2; exit 1; }
+    [[ -n "$CUR_KW_VER" ]] && echo -e "${YELLOW}Detected kweaver ${CUR_KW_VER} (0.8.x removed ds/dataview) — pinning ${LEGACY_SDK_VERSION} for this run.${NC}" >&2
+    LEGACY_DIR="$CASE_DIR/.legacy-sdk"
+    if [[ ! -x "$LEGACY_DIR/node_modules/.bin/kweaver" ]]; then
+      echo -e "${YELLOW}Installing kweaver-sdk@${LEGACY_SDK_VERSION} into ${LEGACY_DIR} ...${NC}" >&2
+      mkdir -p "$LEGACY_DIR"
+      # Write a minimal package.json with a VALID name. `npm init -y` would fail here because npm
+      # rejects the dotted dir name ".legacy-sdk" as a package name; npm i itself does not need it.
+      [[ -f "$LEGACY_DIR/package.json" ]] || printf '{"name":"kweaver-legacy-sdk","version":"0.0.0","private":true}\n' > "$LEGACY_DIR/package.json"
+      NPM_LOG="$(mktemp)"
+      if ! ( cd "$LEGACY_DIR" && npm i "@kweaver-ai/kweaver-sdk@${LEGACY_SDK_VERSION}" ) >"$NPM_LOG" 2>&1; then
+        echo -e "${RED}Failed to install kweaver-sdk@${LEGACY_SDK_VERSION}:${NC}" >&2
+        tail -15 "$NPM_LOG" >&2
+        rm -f "$NPM_LOG"
+        echo -e "${YELLOW}  Retry, or install manually: (cd ${LEGACY_DIR} && npm i @kweaver-ai/kweaver-sdk@${LEGACY_SDK_VERSION})${NC}" >&2
+        exit 1
+      fi
+      rm -f "$NPM_LOG"
+    fi
+    export PATH="$LEGACY_DIR/node_modules/.bin:$PATH"
+    echo -e "${GREEN}Using legacy kweaver: $(command -v kweaver) ($(kweaver --version 2>/dev/null | head -1))${NC}" >&2
+  fi
 fi
 
 command -v kweaver >/dev/null 2>&1 || {
