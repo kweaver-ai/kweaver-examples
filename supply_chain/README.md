@@ -14,7 +14,7 @@ This case mirrors assets from the [kweaver-core deploy/auto_cofig](https://githu
 
 | Directory       | Contents                                                                 |
 | --------------- | ------------------------------------------------------------------------ |
-| `data_source/`  | `import_data.sql` and `demo_data/*.csv` — `CREATE TABLE` + `LOAD DATA LOCAL INFILE` |
+| `data_source/`  | `mydatabase.sql` — full MySQL dump (schema + data) matching `供应链业务知识网络demo.json` |
 | `bkn/`          | Business knowledge network (`.bkn` modules); see [`bkn/SKILL.md`](bkn/SKILL.md) |
 | `agents/`       | `agent.json` — supply-chain Q&A agent (import)                           |
 | `dataflow/`     | `dataflow.json` — evaluation / batch flow (import)                       |
@@ -26,23 +26,17 @@ This case mirrors assets from the [kweaver-core deploy/auto_cofig](https://githu
 1. **KWeaver CLI** — Node.js 22+, `npm i -g @kweaver-ai/kweaver-sdk`
 2. **jq** — JSON helpers used by `bootstrap.sh` and `scripts/*.sh` (e.g. `brew install jq`)
 3. **Login** — `kweaver auth login <your-platform-url>`
-4. **MySQL** — create an empty database, load `data_source/import_data.sql`, and ensure the platform can reach the host
+4. **MySQL** — create an empty database, load `data_source/mydatabase.sql`, and ensure the platform can reach the host
 
 ## Import demo data (MySQL)
 
-CSV files live under `supply_chain/data_source/demo_data/`. The script `import_data.sql` drops/creates tables (columns as `TEXT`) and loads each file with `LOAD DATA LOCAL INFILE` and a plain column list (no per-column `SET` / `NULLIF`).
-
-From the **repository root**:
+`data_source/mydatabase.sql` is a full MySQL dump (schema + data) whose 18 tables align 1:1 with the data views in `供应链业务知识网络demo.json`. Load it into your database:
 
 ```bash
-mysql --local-infile=1 -u <user> -p <database> < supply_chain/data_source/import_data.sql
+mysql --local-infile=1 -u <user> -p <database> < supply_chain/data_source/mydatabase.sql
 ```
 
-Notes:
-
-- `LOAD DATA` paths in the SQL are **relative to the repo root**; run the command from there, or edit those paths.
-- If you add or rename CSVs under `demo_data/`, update `import_data.sql` (table name, file path, and column list per block).
-- All columns are `TEXT` to keep the script small; change `CREATE TABLE` if you need strict numeric or date types.
+This is the single seed dataset for the case — used by both the `.bkn` push flow and the `demo.json` import flow.
 
 ## Bootstrap (recommended)
 
@@ -68,7 +62,7 @@ This script lives in this directory and **only** drives this case. It is **inter
 
 Typical order:
 
-1. Load `import_data.sql` into MySQL.
+1. Load `mydatabase.sql` into MySQL.
 2. Run bootstrap and choose **data_source** when prompted; complete `kweaver ds connect …`.
 3. Run **bkn** to `kweaver bkn push` this directory’s BKN.
 4. Run **agents**, **dataflow**, and **tools** to call the import APIs.
@@ -93,28 +87,21 @@ Typical order:
 `scripts/patch_demo_json.sh` re-maps these by **fetching real ids from the target platform** at run time (it does not trust the values baked into the file):
 
 - small-model id ← `kweaver model small list --type embedding` (first one by default, or `--embedding-id` / `--embedding-name`)
-- data_view id ← `kweaver resource list --datasource-id <catalog>`, matched by table name (the `dbname.` prefix is ignored), and `data_source.type` is switched from the old `data_view` to the platform's `resource`
+- data_view id ← `kweaver call GET /api/mdl-data-model/v1/data-views?data_source_id=<ds>`, matched by name / technical_name / meta_table_name (the new SDK has no `dataview` subcommand, but `kweaver call` still reaches the old endpoint — **no downgrade needed**); `data_source.type` stays `data_view`
 - action-type toolbox binding cannot be auto-resolved: pass `--strip-actions` to drop the action types, then re-bind tools in Studio
 
 ```bash
 cd supply_chain
-# 1. The demo.json's matching datasource is data_source/mydatabase.sql (table names align 18/18 with the
-#    18 views). NOTE: demo_data/*.csv + import_data.sql is a DIFFERENT set whose table names do not fully
-#    match — do not mix them. Register the DB as a vega catalog on the target platform and discover it:
-#      kweaver vega catalog create --name sc --connector-type mariadb \
-#        --connector-config '{"host":"<DB IP reachable by the platform>","port":3306,"username":"root","password":"***","databases":["supplychaindata"]}'
-#      kweaver vega catalog discover <catalog-id> --wait
-# 2. Re-map ids and import:
+# Datasource: load mydatabase.sql into a DB, then register it as a data_connection datasource on the
+#   platform (DIP UI "Data connection", or old SDK: kweaver ds connect maria <host> <port> <db>
+#   --account <user> --password <pass>, or bootstrap's data_source step). Scan it so all 18 tables have a
+#   same-named data_view; <ds-id> is that datasource id.
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
-    --datasource-id <catalog-id> --strip-actions --strict --out /tmp/demo.patched.json
+    --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
 ```
 
-> **data_view vs resource (two binding models, different behavior)**:
-> - Old platforms use `data_view`: import triggers **build + vectorization** into OpenSearch and **needs a working small model** — a wrong id is the `IdNotExist` from the screenshot.
-> - New platforms use `resource`: object types are queried from vega **in real time, no build, no embedding**. The patcher switches to `resource` by default.
->
-> Either way the **small model itself must be usable**: even with a correct id, if its upstream (e.g. Aliyun DashScope) is unpaid/unavailable, vectorization still fails with `ExternalSmallModel.UnknownError` (e.g. `Arrearage`) — a platform/billing issue; register a working small model in the model factory.
+> **A working small model is mandatory**: for both `.bkn` and demo.json, BKN push/build **vectorizes concept groups + object-type concepts into OpenSearch**, which always calls the small model. Even with a correct id, if its upstream (e.g. a cloud vendor) is unpaid/unavailable, it fails with `ExternalSmallModel.UnknownError` (e.g. `Arrearage`) — a platform/billing issue; register a working small model in the model factory.
 
 ## Validate BKN only
 

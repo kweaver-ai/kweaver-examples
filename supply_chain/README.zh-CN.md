@@ -14,7 +14,7 @@
 
 | 目录            | 内容                                                                     |
 | --------------- | ------------------------------------------------------------------------ |
-| `data_source/`  | `import_data.sql` 与 `demo_data/*.csv` — `CREATE TABLE` + `LOAD DATA LOCAL INFILE` |
+| `data_source/`  | `mydatabase.sql` — 整库 MySQL dump（结构 + 数据），18 张表与 `供应链业务知识网络demo.json` 一一对应 |
 | `bkn/`          | 业务知识网络（`.bkn` 模块）；说明见 [`bkn/SKILL.md`](bkn/SKILL.md)       |
 | `agents/`       | `agent.json` — 供应链问答类智能体（导入用）                             |
 | `dataflow/`     | `dataflow.json` — 评测 / 批处理数据流（导入用）                         |
@@ -26,23 +26,17 @@
 1. **KWeaver CLI** — Node.js 22+，`npm i -g @kweaver-ai/kweaver-sdk`
 2. **jq** — `bootstrap.sh` 与 `scripts/*.sh` 解析 JSON 用（如 `brew install jq`）
 3. **登录** — `kweaver auth login <平台地址>`
-4. **MySQL** — 创建空库并执行 `data_source/import_data.sql`，并保证平台能访问该数据库
+4. **MySQL** — 创建空库并执行 `data_source/mydatabase.sql`，并保证平台能访问该数据库
 
 ## 导入示例数据（MySQL）
 
-CSV 位于 `supply_chain/data_source/demo_data/`。`import_data.sql` 会删表/建表（列类型为 `TEXT`），并用 `LOAD DATA LOCAL INFILE` 按列名列表导入，无逐列 `SET` / `NULLIF` 清洗块。
-
-在**仓库根目录**执行：
+**导入 `mydatabase.sql`（与 `供应链业务知识网络demo.json` 配套，18 张表名 18/18 对齐）：**
 
 ```bash
-mysql --local-infile=1 -u <user> -p <database> < supply_chain/data_source/import_data.sql
+mysql --local-infile=1 -u <user> -p <database> < supply_chain/data_source/mydatabase.sql
 ```
 
-说明：
-
-- SQL 中的 `LOAD DATA` 路径相对**仓库根目录**，请在根目录执行上述命令，或自行修改路径。
-- 若在 `demo_data/` 中增删或重命名 CSV，需同步修改 `import_data.sql`（表名、文件路径、列清单）。
-- 为保持脚本简短，列统一为 `TEXT`；若业务需要严格数值/日期类型，请自行调整 `CREATE TABLE`。
+这是本案例**唯一**的种子数据集：`.bkn` 推送流程与 `demo.json` 导入流程都用它。
 
 ## 引导脚本（推荐）
 
@@ -68,7 +62,7 @@ chmod +x bootstrap.sh   # 仅需一次
 
 建议顺序：
 
-1. 将 `import_data.sql` 导入 MySQL。
+1. 将 `mydatabase.sql` 导入 MySQL。
 2. 运行 bootstrap，在提示中选择 **data_source**，完成 `kweaver ds connect …`。
 3. 执行 **bkn** 步骤：`kweaver bkn push` 本目录 BKN。
 4. 按需执行 **agents**、**dataflow**、**tools** 完成各资源导入。
@@ -92,29 +86,21 @@ chmod +x bootstrap.sh   # 仅需一次
 
 `scripts/patch_demo_json.sh` 在导入前**从目标平台动态拉取真实 ID 回填**（不依赖文件里写死的值）：
 
-- 小模型 id ← `kweaver model small list --type embedding`（不指定就取第一个，或用 `--embedding-id` / `--embedding-name`）
-- 数据视图 id ← `kweaver resource list --datasource-id <catalog>`，按表名（自动忽略 `库名.` 前缀）匹配，并把 `data_source.type` 由旧的 `data_view` 改为当前平台的 `resource`
-- 行动类工具绑定无法自动解析：用 `--strip-actions` 先剥离，导入后在 Studio 里重新绑定工具
+- 小模型 id ← `kweaver model small list --type embedding`（不指定取第一个，或用 `--embedding-id` / `--embedding-name`）
+- 数据视图 id ← `kweaver call GET /api/mdl-data-model/v1/data-views?data_source_id=<ds>`，按 name / technical_name / meta_table_name 匹配表名（新 SDK 已无 `dataview` 子命令，但 `kweaver call` 仍能打这个老端点，**无需降级 SDK**）；`data_source.type` 保持 `data_view` 不变
+- 行动类工具绑定无法自动解析：用 `--strip-actions` 先剥离，导入后在 Studio 重新绑定工具
 
 ```bash
 cd supply_chain
-# 1. 准备数据源：本案例的 demo.json 对应 data_source/mydatabase.sql（表名与 18 个视图 18/18 对齐；
-#    注意 demo_data/*.csv + import_data.sql 是另一套、表名不完全一致，不要混用）。
-#    在目标平台用 vega 注册该库为 catalog，并 discover 出资源：
-#      kweaver vega catalog create --name sc --connector-type mariadb \
-#        --connector-config '{"host":"<DB能被平台访问的IP>","port":3306,"username":"root","password":"***","databases":["supplychaindata"]}'
-#      kweaver vega catalog discover <catalog-id> --wait
-# 2. 改 ID 后导入：
+# 数据源：先把 mydatabase.sql 导入一个库,并在平台把它连成 data_connection 数据源
+#   （DIP 界面「数据连接」新建,或老 SDK：kweaver ds connect maria <host> <port> <db> --account <user> --password <pass>,
+#    或直接用 bootstrap 的 data_source 步骤),扫描后确保 18 张表都有同名 data_view;<ds-id> = 该数据源 id。
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
-    --datasource-id <catalog-id> --strip-actions --strict --out /tmp/demo.patched.json
+    --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
 ```
 
-> **数据视图 vs 资源（两种绑定模型，行为不同）**：
-> - 老平台用 `data_view`：导入后会 **build + 向量化**写入 OpenSearch，**依赖可用的小模型**——小模型 id 不对就是截图里的 `IdNotExist`。
-> - 新平台用 `resource`：对象类**实时查询 vega，不 build、不用 embedding**。patcher 默认改成 `resource`，导入即用。
->
-> 不论哪种，**小模型本身必须可用**：即使 id 正确，若该模型后端（如阿里云 DashScope）欠费/不可用，向量化仍会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）——这是平台/账单问题，需在模型工厂里换一个可用的小模型。
+> **小模型必须可用**：不管 `.bkn` 还是 demo.json，BKN push/build 都会把概念分组 + 对象类概念**向量化写入 OpenSearch**，**强制调用小模型**。即使 model id 正确，若该模型后端（如某云厂商）欠费/不可用，会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）—— 平台/账单问题，需在模型工厂换一个可用小模型。
 
 ## 仅校验 BKN
 

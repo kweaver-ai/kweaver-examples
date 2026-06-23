@@ -40,5 +40,5 @@ Incremental Key:
 
 | Type | ID | Name |
 |------|-----|------|
-| data_view | {{DV:purchase_requisition_event}} | purchase_requisition_event |
+| data_view | {{DV:purchase_requisition_event_update}} | purchase_requisition_event_update |
 
