@@ -214,15 +214,24 @@ fi
 # old SDK into a local, gitignored dir and puts it FIRST on PATH for this run only (global install
 # is untouched). Use it on platforms still on the old data_view backend.
 if [[ "$LEGACY_SDK" == true ]]; then
-  CUR_KW_VER="$(kweaver --version 2>/dev/null | head -1 | tr -d '[:space:]')"
+  # NB: under `set -euo pipefail`, a bare `VAR=$(kweaver ...)` would abort the whole script with 127
+  # when kweaver is not installed — so guard with command -v first (no kweaver => empty => install path).
+  CUR_KW_VER=""
+  if command -v kweaver >/dev/null 2>&1; then
+    CUR_KW_VER="$(kweaver --version 2>/dev/null | head -1 | tr -d '[:space:]' || true)"
+  fi
   if [[ "$CUR_KW_VER" == 0.7.* ]]; then
     # Already on the 0.7.x line — it has ds/dataview, no downgrade needed.
     echo -e "${GREEN}kweaver ${CUR_KW_VER} is on the 0.7.x line (has ds/dataview); using it as-is.${NC}" >&2
   else
     # No kweaver, or a newer 0.8.x (which removed ds/dataview) — pin 0.7.x locally and prefer it
     # for THIS run (PATH prepend). The global install is left untouched; remove ./.legacy-sdk to reset.
-    command -v npm >/dev/null 2>&1 || { echo -e "${RED}--legacy-sdk needs npm (Node 22+).${NC}" >&2; exit 1; }
-    [[ -n "$CUR_KW_VER" ]] && echo -e "${YELLOW}Detected kweaver ${CUR_KW_VER} (0.8.x removed ds/dataview) — pinning ${LEGACY_SDK_VERSION} for this run.${NC}" >&2
+    command -v npm >/dev/null 2>&1 || { echo -e "${RED}--legacy-sdk needs npm (Node 22+). Install Node, or rerun with --no-legacy-sdk if your global kweaver matches the platform.${NC}" >&2; exit 1; }
+    if [[ -n "$CUR_KW_VER" ]]; then
+      echo -e "${YELLOW}Detected kweaver ${CUR_KW_VER} (0.8.x removed ds/dataview) — pinning ${LEGACY_SDK_VERSION} for this run.${NC}" >&2
+    else
+      echo -e "${YELLOW}No kweaver CLI found — installing ${LEGACY_SDK_VERSION} (the data_view flow needs ds/dataview).${NC}" >&2
+    fi
     LEGACY_DIR="$CASE_DIR/.legacy-sdk"
     if [[ ! -x "$LEGACY_DIR/node_modules/.bin/kweaver" ]]; then
       echo -e "${YELLOW}Installing kweaver-sdk@${LEGACY_SDK_VERSION} into ${LEGACY_DIR} ...${NC}" >&2
