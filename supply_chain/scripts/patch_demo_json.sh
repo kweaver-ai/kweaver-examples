@@ -4,18 +4,22 @@
 #
 # An exported KN JSON carries IDs from the platform it was exported from:
 #   - per data_property:  index_config.vector_config.model_id  -> small/embedding model id (snowflake)
-#   - per object/relation type: data_source.id                 -> atomic data_view / resource id
+#   - per object/relation type: data_source.id                 -> data_view id (old data_view model)
 # On a different platform those IDs do not exist, so索引构建任务报:
 #   ModelFactory.ExternalSmallModel.GetInfo.IdNotExist  "部分配置id不存在"
 #
-# This script fetches the REAL ids from the target platform and fills them in:
+# This targets the OLD data_view platform model (object types bound to data_view, build + vectorize):
 #   - embedding model id  <- kweaver model small list --type embedding   (or --embedding-id / --embedding-name)
-#   - data_view ids       <- kweaver resource find --name <name> [--datasource-id <id>]
+#   - data_view ids       <- kweaver call GET /api/mdl-data-model/v1/data-views?data_source_id=<id>
+#                            (new SDK dropped the `dataview` subcommand; `kweaver call` still reaches the
+#                             old endpoint, so NO SDK downgrade is needed). type stays "data_view".
 # Only vector_config blocks with enabled==true get the embedding id; disabled ones are cleared to "".
 #
 # Usage:
-#   ./patch_demo_json.sh <export.json> [--datasource-id <catalog_id>] \
-#       [--embedding-id <id> | --embedding-name <name>] [--out <path>] [--strict] [--insecure]
+#   ./patch_demo_json.sh <export.json> --datasource-id <data-connection-datasource-id> \
+#       [--embedding-id <id> | --embedding-name <name>] [--strip-actions] [--out <path>] [--strict] [--insecure]
+#
+#   <data-connection-datasource-id>: the OLD datasource id, see GET /api/data-connection/v1/datasource
 #
 # Output: writes a patched copy (default <input>.patched.json); the input file is left unchanged.
 set -euo pipefail
@@ -95,7 +99,7 @@ resolve_embedding_id() {
 EMB_RESOLVED="$(resolve_embedding_id)" || exit 1
 ok "embedding 小模型 id = $EMB_RESOLVED"
 
-# ---------- 2. 解析 data_view (resource) id,按名字 ----------
+# ---------- 2. 解析 data_view id,按表名(老 data_view 模型,保持 type=data_view) ----------
 # 抽取所有 data_source 名字(对象类 + 关系类)
 NAMES="$(jq -r '[.. | .data_source? // empty | select(type=="object") | .name? // empty] | unique[]' "$IN")"
 
@@ -104,45 +108,33 @@ MAP_JSON="{}"
 RESOLVED_COUNT=0
 UNRESOLVED=()
 
-# vega 资源名通常带库前缀(如 supplychaindata.bom_event),而 demo.json 里是裸表名(bom_event)。
-# 预取 catalog 资源清单一次,之后按「全名」或「去库前缀的 basename」匹配,避免 fuzzy find 的噪声与逐个请求。
-RES_LIST="[]"
+# 老平台用 data_view 模型:数据视图在 /api/mdl-data-model/v1/data-views。
+# 新版 SDK(0.8.x)已删掉 `kweaver dataview` 子命令,但 `kweaver call` 能直接打这个老端点 —— 无需降级 SDK。
+# 预取该数据源下全部 data_view 一次,再按 name / technical_name / meta_table_name 匹配 demo.json 里的表名。
+DV_LIST="[]"
 if [[ -n "$DS_ID" ]]; then
-  rl_tmp="$(mktemp)"; rl_err="$(mktemp)"
-  if kweaver resource list --datasource-id "$DS_ID" --limit 500 --json >"$rl_tmp" 2>"$rl_err"; then
-    RES_LIST="$(jq -c '(if type=="array" then . else (.data // .entries // []) end) | map({name, id})' "$rl_tmp" 2>/dev/null || echo "[]")"
+  dv_tmp="$(mktemp)"; dv_err="$(mktemp)"
+  if kweaver call "/api/mdl-data-model/v1/data-views?data_source_id=${DS_ID}&limit=500" >"$dv_tmp" 2>"$dv_err"; then
+    DV_LIST="$(jq -c '(.entries // .data // .data.list // []) | map({name, technical_name, meta_table_name, id})' "$dv_tmp" 2>/dev/null || echo "[]")"
   else
-    [[ -s "$rl_err" ]] && cat "$rl_err" >&2
-    note "  WARN: 无法列出 catalog 资源,回退到逐个 resource find"
+    [[ -s "$dv_err" ]] && cat "$dv_err" >&2
+    note "  WARN: 拉取 data_view 列表失败(GET /api/mdl-data-model/v1/data-views)"
   fi
-  rm -f "$rl_tmp" "$rl_err"
+  rm -f "$dv_tmp" "$dv_err"
+else
+  note "  未给 --datasource-id:无法解析 data_view id(老平台请传 data-connection 数据源 id,见 /api/data-connection/v1/datasource)"
 fi
 
-# 先在预取清单里按 全名 / basename 找;清单为空(未给 --datasource-id)时回退到 resource find。
+# demo.json 的 data_source.name 是表名;data_view 可能 name=显示名、technical_name/meta_table_name=表名,逐字段精确比对。
 resolve_view_id() {
-  local name="$1" id
-  id="$(echo "$RES_LIST" | jq -r --arg n "$name" '
-    ([.[] | select(.name==$n)] + [.[] | select(.name | endswith("."+$n))]) | .[0].id // empty
-  ' 2>/dev/null)"
-  if [[ -n "$id" ]]; then echo "$id"; return 0; fi
-  local tmp errf ec; tmp="$(mktemp)"; errf="$(mktemp)"; ec=0
-  local args=(resource find --name "$name" --no-wait --json)
-  [[ -n "$DS_ID" ]] && args+=(--datasource-id "$DS_ID")
-  kweaver "${args[@]}" >"$tmp" 2>"$errf" || ec=$?
-  if [[ "$ec" == 0 ]]; then
-    id="$(jq -r --arg n "$name" '
-      (if type=="array" then . elif (.data|type)=="array" then .data else [] end)
-      | ([.[] | select(.name==$n)] + [.[] | select(.name | endswith("."+$n))]) | .[0].id // empty
-    ' "$tmp" 2>/dev/null)"
-  else
-    [[ -s "$errf" ]] && cat "$errf" >&2
-  fi
-  rm -f "$tmp" "$errf"
-  [[ -n "$id" ]] && echo "$id"
+  local name="$1"
+  echo "$DV_LIST" | jq -r --arg n "$name" '
+    [ .[] | select(.name==$n or .technical_name==$n or .meta_table_name==$n) ] | .[0].id // empty
+  ' 2>/dev/null
 }
 
 if [[ -n "$NAMES" ]]; then
-  echo "解析 data_view -> resource id (datasource=${DS_ID:-<未指定,全局搜>}) ..." >&2
+  echo "解析 data_view id (datasource=${DS_ID:-<未指定>}) ..." >&2
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     rid="$(resolve_view_id "$name" || true)"
@@ -152,7 +144,7 @@ if [[ -n "$NAMES" ]]; then
       echo "  $name -> $rid" >&2
     else
       UNRESOLVED+=("$name")
-      note "  WARN: 目标平台找不到资源 '$name' — 该对象的 data_source.id 保持不变"
+      note "  WARN: 数据源里找不到表名为 '$name' 的 data_view — 该对象 data_source.id 保持不变"
     fi
   done <<< "$NAMES"
 fi
@@ -167,9 +159,8 @@ jq --arg emb "$EMB_RESOLVED" --argjson map "$MAP_JSON" '
   | walk(
     if type=="object" and has("data_source") and (.data_source|type=="object")
        and (.data_source.name? != null) and ($map[.data_source.name] != null) then
-      # 当前平台按 vega resource 绑定:同时改 id 和 type(老导出是 data_view + uuid)。
+      # 老 data_view 模型:只替换 id,保持 type=data_view(不转 resource)。
       .data_source.id = $map[.data_source.name]
-      | .data_source.type = "resource"
     else . end
   )
   | (if $strip and (.action_types? != null) then .action_types = [] else . end)
@@ -187,7 +178,7 @@ elif [[ "$ORIG_ACTIONS" -gt 0 ]]; then
 fi
 
 if [[ ${#UNRESOLVED[@]} -gt 0 ]]; then
-  note "未解析的 data_view (目标平台无同名资源,需先建数据视图,或这些表本就没在 demo_data 里):"
+  note "未解析的 data_view (该数据源下没有同表名的数据视图,需先在平台为这些表建 data_view):"
   printf '    - %s\n' "${UNRESOLVED[@]}" >&2
   if [[ "$STRICT" == true ]]; then
     err "strict: 有未解析的 data_view,终止。"; exit 1
@@ -196,7 +187,8 @@ fi
 
 cat >&2 <<EOF
 
-下一步:导入打好补丁的 JSON(替换掉原来直接导出库的做法):
-  - 在 Studio -> BKN 用 $OUT 导入,或调对应的 BKN 导入 API。
-  - 若仍报小模型相关错误,确认 $EMB_RESOLVED 在目标平台 kweaver model small list 里存在。
+下一步:导入打好补丁的 JSON:
+  - 在 Studio -> BKN 用 $OUT 导入,或调 BKN 导入 API。
+  - 小模型仍报错时:确认 $EMB_RESOLVED 在目标平台存在(kweaver model small list)且其后端可用(账号未欠费),
+    否则对象类概念索引/向量化会报 ExternalSmallModel.UnknownError。
 EOF
