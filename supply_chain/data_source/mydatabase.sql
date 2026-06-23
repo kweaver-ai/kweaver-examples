@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.45, for Linux (x86_64)
 --
--- Host: 10.248.54.13    Database: supplychaindata
+-- Host: localhost    Database: supplychaindata
 -- ------------------------------------------------------
 -- Server version	8.0.43-34
 
