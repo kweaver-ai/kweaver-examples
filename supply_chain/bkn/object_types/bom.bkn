@@ -14,9 +14,9 @@ tags: []
 | Name | Display Name | Type | Description | Mapped Field |
 |------|--------------|------|-------------|--------------|
 | alt_group_no | 替代组号 | string | 替代料分组标识 | alt_group_no |
-| alt_priority | 主料优先级 | integer | 0=主料，大于0为替代料；齐套与多产品监测仅统计主料 | alt_priority |
+| alt_priority | 主料优先级 | string | 0=主料，大于0为替代料；齐套与多产品监测仅统计主料 | alt_priority |
 | assembly_set | 是否装配组 | string | 标识是否为装配组（是/否） | assembly_set |
-| base_quantity | 基础数量 | integer | BOM的基础数量，用于计算子项用量 | base_quantity |
+| base_quantity | 基础数量 | string | BOM的基础数量，用于计算子项用量 | base_quantity |
 | bom_category | BOM类别 | string | BOM的分类（如Consumer等） | bom_category |
 | bom_id | BOMid | string | BOM关系的唯一标识符 | bom_id |
 | bom_version | BOM版本 | string | BOM的版本号（如V2.0） | bom_version |

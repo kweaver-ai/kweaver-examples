@@ -24,11 +24,11 @@ tags: []
 | planned_finish_date | 计划完成日期 | string | 生产计划完成日期 | planned_finish_date |
 | planned_start_date | 计划开始日期 | string | 生产计划开始日期 | planned_start_date |
 | priority | 优先级 | string | 生产订单的优先级（高/中/低） | priority |
-| process_sequence | 工序顺序 | integer | 生产工序的顺序号 | process_sequence |
+| process_sequence | 工序顺序 | string | 生产工序的顺序号 | process_sequence |
 | production_line | 生产线 | string | 执行生产的生产线名称 | production_line |
 | production_order_id | 产品生产单id | string | 产品生产单记录的唯一标识符 | production_order_id |
 | production_order_number | 产品生产单编号 | string | 产品生产单的业务编号（如MO-202305001） | production_order_number |
-| production_quantity | 生产数量 | integer | 计划生产的产出物数量 | production_quantity |
+| production_quantity | 生产数量 | string | 计划生产的产出物数量 | production_quantity |
 | sourcebillnumber | 来源MRP单号 | string | 自制件 MRP billno；Forecast→MRP(自制)→MPS 生产链关联键 | sourcebillnumber |
 | status | 状态 | string | 生产订单状态（Active/Inactive等） | status |
 | work_order_status | 工单状态 | string | 工单的状态（如已完工等） | work_order_status |
