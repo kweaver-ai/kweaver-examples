@@ -63,16 +63,23 @@ This script lives in this directory and **only** drives this case. It is **inter
 Typical order:
 
 1. Load `mydatabase.sql` into MySQL.
-2. Run bootstrap and choose **data_source** when prompted; complete `kweaver ds connect …`.
-3. Run **bkn** to `kweaver bkn push` this directory’s BKN.
-4. Run **agents**, **dataflow**, and **tools** to call the import APIs.
+2. Run bootstrap and choose **data_source** when prompted; complete `kweaver ds connect …` (note the datasource id it creates).
+3. Run **bkn**: `--sync-dataviews --datasource-id <ds-id>` resolves placeholders, then `kweaver bkn push`.
+4. **Build (required):** push only creates the schema; **you must trigger a build to vectorize the data and make the KN usable**:
+   ```bash
+   kweaver bkn list --name-pattern 供应链业务知识网络 --pretty   # get the kn-id
+   kweaver bkn build <kn-id> --wait                              # wait until the task shows "completed"
+   ```
+   The build needs a working embedding (small) model on the platform (see "A working small model is mandatory" below).
+5. Run **agents**, **dataflow**, and **tools** to call the import APIs.
+6. **Create the digital employee:** in the DIP UI (as admin) create the supply-chain agent, pick the built knowledge network as its knowledge, and publish (see the product tutorial).
 
 ## After import
 
-- **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <uuid>` resolves those names via `kweaver dataview find` and substitutes real UUIDs (use `--bkn-staging` to patch a temp copy so the repo stays unchanged). Use `--strict-dataviews` with `--sync-dataviews` in CI so any unresolved view fails the run instead of only warning.
+- **Data views (automated):** each object type row uses a placeholder `| data_view | {{DV:logical_table_name}} | logical_table_name |`. At bootstrap time, `--sync-dataviews --datasource-id <ds-id>` resolves those names (one `kweaver call GET /api/mdl-data-model/v1/data-views`, matched by table name) and substitutes real ids (use `--bkn-staging` to patch a temp copy so the repo stays unchanged). Use `--strict-dataviews` with `--sync-dataviews` in CI so any unresolved view fails the run instead of only warning.
 - **Studio (optional):** if you do not use the bootstrap flags above, bind object types to data views manually in **Studio → BKN**.
 - **Decision agent:** use bootstrap `--agent-bind-kn` / `--llm-id` / `--agent-publish`, or attach the knowledge network, models, and tools in agent settings.
-- **Models (大模型 / 小模型):** use `--pick-models` so the script calls `kweaver call …/llm/list`, prints numbered lists (chat LLM vs embedding), and you choose by index. With `-y` (non-interactive), pass both `--llm-id` and `--embedding-id`. The small model is applied to the knowledge network via `scripts/kn_set_embedding.sh` when the platform JSON exposes a known field; otherwise follow the script’s Studio hint.
+- **Models (大模型 / 小模型):** use `--pick-models` so the script lists models via `kweaver model llm list` (chat LLM) and `kweaver model small list --type embedding` (embedding), prints numbered lists, and you choose by index. With `-y` (non-interactive), pass both `--llm-id` and `--embedding-id`. The small model is applied to the knowledge network via `scripts/kn_set_embedding.sh` when the platform JSON exposes a known field; otherwise follow the script’s Studio hint.
 
 ## Importing the full export JSON
 

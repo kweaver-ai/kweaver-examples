@@ -63,16 +63,23 @@ chmod +x bootstrap.sh   # 仅需一次
 建议顺序：
 
 1. 将 `mydatabase.sql` 导入 MySQL。
-2. 运行 bootstrap，在提示中选择 **data_source**，完成 `kweaver ds connect …`。
-3. 执行 **bkn** 步骤：`kweaver bkn push` 本目录 BKN。
-4. 按需执行 **agents**、**dataflow**、**tools** 完成各资源导入。
+2. 运行 bootstrap，在提示中选择 **data_source**，完成 `kweaver ds connect …`（记下生成的数据源 id，下一步要用）。
+3. 执行 **bkn** 步骤：`--sync-dataviews --datasource-id <数据源id>` 解析占位符后 `kweaver bkn push`。
+4. **构建（必做）**：push 只创建 schema，**还要触发构建才会把数据向量化、知识网络才可用**：
+   ```bash
+   kweaver bkn list --name-pattern 供应链业务知识网络 --pretty   # 取 kn-id
+   kweaver bkn build <kn-id> --wait                              # 等任务变「已完成」
+   ```
+   构建需要平台上有**可用的嵌入小模型**（见文末《小模型必须可用》）。
+5. 按需执行 **agents**、**dataflow**、**tools** 完成各资源导入。
+6. **建数字员工**：在 DIP 界面用 admin 新建「供应链数字员工」，知识配置选上面构建好的知识网络 → 发布（详见产品教程《快速从 0 到 1 搭建供应链数字员工》）。
 
 ## 导入之后
 
 - **数据视图（可自动化）：** 对象类型里使用占位符 `| data_view | {{DV:逻辑表名}} | 逻辑表名 |`。执行 bootstrap 时加 `--sync-dataviews --datasource-id <uuid>`，脚本会按表名解析原子视图 ID 并替换；加 `--bkn-staging` 则在临时目录打补丁并 push，**不改动仓库文件**。CI 场景可同时加 `--strict-dataviews`，任一视图解析失败则整次失败退出（默认仅告警并跳过未解析行）。
 - **Studio（可选）：** 若不用上述参数，再在 **Studio → BKN** 里手工绑定数据视图。
 - **决策智能体：** 可用 bootstrap 的 `--agent-bind-kn` / `--llm-id` / `--agent-publish`，或在平台里配置。
-- **大模型 / 小模型：** 使用 `--pick-models`，脚本会通过 `kweaver call …/llm/list` 拉取列表并**按序号交互选择**对话大模型与向量（嵌入）小模型。配合 `-y` 非交互时需同时指定 `--llm-id` 与 `--embedding-id`。小模型会尝试通过 `scripts/kn_set_embedding.sh` 写回知识网络；若平台 JSON 无对应字段，请按脚本提示在 Studio 中配置。
+- **大模型 / 小模型：** 使用 `--pick-models`，脚本分别用 `kweaver model llm list`（对话大模型）和 `kweaver model small list --type embedding`（向量/嵌入小模型）拉取列表并**按序号交互选择**。配合 `-y` 非交互时需同时指定 `--llm-id` 与 `--embedding-id`。小模型会尝试通过 `scripts/kn_set_embedding.sh` 写回知识网络；若平台 JSON 无对应字段，请按脚本提示在 Studio 中配置。
 
 ## 导入整库导出 JSON（`供应链业务知识网络demo.json`）
 
