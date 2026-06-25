@@ -1,0 +1,43 @@
+---
+type: object_type
+id: d50outsrcobj0q8ofn01
+name: 委外工单
+tags: []
+---
+
+## ObjectType: 委外工单
+
+委外工单（PR）。由 MRP 计划订单投放生成，用于发起委外流程并驱动供应商提供外协物料。
+
+### Data Properties
+
+| Name | Display Name | Type | Description | Mapped Field |
+|------|--------------|------|-------------|--------------|
+| created_date | 创建日期 | string |  | created_date |
+| material_code | 物料编码 | string |  | material_code |
+| material_name | 物料名称 | string |  | material_name |
+| outsource_order_id | 委外订单ID | string | 委外订单ID（主键）。 | outsource_order_id |
+| outsource_order_number | 委外工单编码 | string |  | outsource_order_number |
+| outsource_qty | 委外数量 | integer |  | outsource_qty |
+| planned_finish_date | 计划完成时间 | string |  | planned_finish_date |
+| planned_start_date | 计划开始日期 | string |  | planned_start_date |
+| sourcebillnumber | 来源单据ID | string | 来源单据ID（关联 MRP billno）。 | sourcebillnumber |
+| status | 状态 | string |  | status |
+| supplier_id | 供应商id | string |  | supplier_id |
+| supplier_name | 供应商名称 | string |  | supplier_name |
+| unit | 单位 | string |  | unit |
+| work_order_status | 工单状态 | string |  | work_order_status |
+
+### Keys
+
+Primary Keys: outsource_order_id
+Display Key: outsource_order_id
+Incremental Key:
+
+### Logic Properties
+
+### Data Source
+
+| Type | ID | Name |
+|------|-----|------|
+| data_view | {{DV:outsource_order_event_update}} | outsource_order_event_update |
