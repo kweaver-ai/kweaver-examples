@@ -106,6 +106,7 @@ cd supply_chain
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
     --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
+kweaver bkn build <kn-id> --wait      # required: build after create, or the KN is not usable
 ```
 
 > **A working small model is mandatory**: for both `.bkn` and demo.json, BKN push/build **vectorizes concept groups + object-type concepts into OpenSearch**, which always calls the small model. Even with a correct id, if its upstream (e.g. a cloud vendor) is unpaid/unavailable, it fails with `ExternalSmallModel.UnknownError` (e.g. `Arrearage`) — a platform/billing issue; register a working small model in the model factory.

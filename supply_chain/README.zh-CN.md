@@ -105,6 +105,7 @@ cd supply_chain
 ./scripts/patch_demo_json.sh bkn/供应链业务知识网络demo.json \
     --datasource-id <ds-id> --strip-actions --strict --out /tmp/demo.patched.json
 kweaver bkn create --body-file /tmp/demo.patched.json --import-mode overwrite
+kweaver bkn build <kn-id> --wait      # 必做:创建后还要构建,KN 才可用
 ```
 
 > **小模型必须可用**：不管 `.bkn` 还是 demo.json，BKN push/build 都会把概念分组 + 对象类概念**向量化写入 OpenSearch**，**强制调用小模型**。即使 model id 正确，若该模型后端（如某云厂商）欠费/不可用，会报 `ExternalSmallModel.UnknownError`（如 `Arrearage`）—— 平台/账单问题，需在模型工厂换一个可用小模型。
