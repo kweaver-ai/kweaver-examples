@@ -80,8 +80,12 @@ if ! jq -e . >/dev/null 2>&1 "$LIST_OUT"; then
 fi
 
 KN_ID="$(jq -r --arg n "$KN_NAME" '
-  (if type == "array" then . else (.entries // .data // []) end)
-  | if type != "array" then error("unexpected list shape") else . end
+  # `//` does not catch index errors; wrap each path in `try` so e.g.
+  # {data:[...]} (data already an array) does not raise
+  # "Cannot index array with string ...". Covers nested {data:{records|list}}
+  # and {entries|records|list} too; final `.` catches a top-level array.
+  ((try .data.records) // (try .data.list) // (try .data.entries) // (try .data) // (try .entries) // (try .records) // (try .list) // .)
+  | if type == "array" then . else [] end
   | map(select(.name == $n)) | .[0].id // empty
 ' "$LIST_OUT")"
 
@@ -100,7 +104,7 @@ if [[ ! -s "$AGENT_OUT" ]]; then
   exit 1
 fi
 
-AGENT_ID="$(jq -r '.id // empty' "$AGENT_OUT")"
+AGENT_ID="$(jq -r '(try .id) // (try .data.id) // empty' "$AGENT_OUT")"
 if [[ -z "$AGENT_ID" ]]; then
   err "Response JSON has no .id (agent import may have failed or key mismatch)"
   exit 1

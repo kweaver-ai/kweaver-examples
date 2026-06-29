@@ -91,11 +91,13 @@ NORM="$(mktemp)"
 trap 'rm -f "$TMP" "$NORM"' EXIT
 
 jq -c '
-  ((.data.records // .data.list // .data // .records // .list // null)
-    | if . == null then []
-      elif type == "array" then .
-      else [] end
-  ) | map(select((.id // .model_id // "") != ""))
+  # `//` only catches null/false, not errors. When the response is {data:[...]}
+  # (data already an array), `.data.records` raises "Cannot index array with
+  # string records" and aborts. Wrap each index in `try` so an error becomes
+  # empty and falls through. Final `.` catches a top-level array response.
+  ((try .data.records) // (try .data.list) // (try .data) // (try .records) // (try .list) // .)
+  | if type == "array" then . else [] end
+  | map(select((.id // .model_id // "") != ""))
 ' "$TMP" >"$NORM"
 
 TOTAL="$(jq 'length' "$NORM")"

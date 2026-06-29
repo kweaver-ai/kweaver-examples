@@ -861,13 +861,13 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     echo -e "${RED}kweaver agent get-by-key returned invalid JSON${NC}" >&2
     exit 1
   fi
-  AGENT_ID="$(jq -r '.id // empty' "$AGENT_OUT")"
+  AGENT_ID="$(jq -r '(try .id) // (try .data.id) // empty' "$AGENT_OUT")"
   if [[ -z "$AGENT_ID" ]]; then
     echo -e "${RED}Could not resolve agent id for key $AGENT_KEY (no .id in response)${NC}" >&2
     exit 1
   fi
 
-  OLD_KN="$(jq -r '.knowledge_network_id // .knowledgeNetworkId // .knowledge_network // empty' "$AGENT_OUT")"
+  OLD_KN="$(jq -r '(try .knowledge_network_id) // (try .knowledgeNetworkId) // (try .knowledge_network) // (try .data.knowledge_network_id) // (try .data.knowledgeNetworkId) // empty' "$AGENT_OUT")"
 
   KN_ID=""
   KN_NAME=""
@@ -894,7 +894,12 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
       return 1
     fi
     KN_ID="$(jq -r --arg n "$KN_NAME" '
-      (if type == "array" then . else (.entries // .data // []) end)
+      # `//` does not catch index errors; wrap each path in `try` so e.g.
+      # {data:[...]} (data already an array) does not raise
+      # "Cannot index array with string ...". Covers nested {data:{records|list}}
+      # and {entries|records|list} too; final `.` catches a top-level array.
+      ((try .data.records) // (try .data.list) // (try .data.entries) // (try .data) // (try .entries) // (try .records) // (try .list) // .)
+      | if type == "array" then . else [] end
       | map(select(.name == $n)) | .[0].id // empty
     ' "$LIST_OUT")"
     rm -f "$LIST_OUT" "$LIST_ERR"
@@ -944,7 +949,9 @@ if [[ "$POST_CFG" == true ]] && [[ "$DRY_RUN" != true ]]; then
     if kweaver call "/api/mf-model-manager/v1/llm/list?page=1&size=50" --pretty >"$LLM_TMP" 2>"$LLM_ERR"; then
       if [[ -s "$LLM_TMP" ]] && jq -e . >/dev/null 2>&1 "$LLM_TMP"; then
         R="$(jq -r '
-          (.data.records[0].id // .data.list[0].id // .data[0].id // .records[0].id // .list[0].id // empty)
+          # `try` guards against {data:[...]} where `.data.records` would raise
+          # "Cannot index array with string records" (// does not catch errors).
+          ((try .data.records[0].id) // (try .data.list[0].id) // (try .data[0].id) // (try .records[0].id) // (try .list[0].id) // empty)
         ' "$LLM_TMP")"
         if [[ -n "$R" ]]; then
           RESOLVED_LLM_ID="$R"
